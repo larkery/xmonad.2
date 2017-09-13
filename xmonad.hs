@@ -5,10 +5,11 @@ import XMonad.Layout.LimitWindows
 import XMonad.Hooks.ManageDocks
 import XMonad.Layout.TwoPane
 import XMonad.Hooks.EwmhDesktops
+import XMonad.Actions.Menu
 
-main = xmonad _config
+main = xmonad mconfig
 
-_config =
+mconfig =
   ewmh $ docks $
   (def
     { terminal    = "urxvt"
