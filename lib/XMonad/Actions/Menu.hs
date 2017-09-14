@@ -39,7 +39,8 @@ instance (Show a, Options a b) => Default (MenuConfig a b) where
                                  ("<Escape>", quit),
                                  ("<Backspace>", input del),
                                  ("<Tab>", nextAction),
-                                 ("C-i", complete)
+                                 ("C-i", complete),
+                                 ("M1-i", completeThis)
                                ],
                      _rowLimit = 25,
                      _location = middleOfScreen
@@ -294,6 +295,8 @@ nextAction = modify $ \s -> s { _action = focusDownZ (_action s) }
 setNthAction :: Int -> Menu a b ()
 setNthAction i = modify $ \s -> s { _action = fromIndex (fst $ toIndex $ _action s) i }
 
+completeThis :: (Show a) => Menu a b ()
+completeThis = modify $ \s -> s { _input = Input (fromMaybe "" (show <$> (getFocusZ $ _choices s))) "" }
 
 complete :: (Show a, Options a b) => Menu a b ()
 complete = do
