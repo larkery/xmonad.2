@@ -10,7 +10,7 @@ import Control.Arrow (first, (&&&), (***))
 import Control.Monad.State
 import Control.Monad
 import Data.Maybe
-import Data.List (foldl')
+import Data.List (foldl', findIndex)
 import Text.ParserCombinators.ReadP hiding (get)
 import XMonad.Util.EZConfig (parseKey)
 
@@ -38,7 +38,8 @@ instance (Show a, Options a b) => Default (MenuConfig a b) where
                                  ("<Return>", select),
                                  ("<Escape>", quit),
                                  ("<Backspace>", input del),
-                                 ("<Tab>", complete)
+                                 ("<Tab>", nextAction),
+                                 ("C-i", complete)
                                ],
                      _rowLimit = 25,
                      _location = middleOfScreen
@@ -169,7 +170,7 @@ render = do
 
   let inputHeight = (fst inputHeights + snd inputHeights)
       actionsHeight = (fst actionsHeights + snd actionsHeights)
-      height = 2 + sum heights + inputHeight + actionsHeight -- also needs height of action
+      height = 2 + sum heights + max inputHeight actionsHeight -- also needs height of action
       width = 400
       topRow = 1 + max inputHeight actionsHeight
 
@@ -205,7 +206,7 @@ render = do
             w <- textWidthXMF disp font s
             printStringXMF disp pixmap font gc fg bg (x - fi w) y0 s
             return $ x - ((fi w) + 4)
-      foldM_ printAction (fi width - 1) $ toTags actionNamesZ
+      foldM_ printAction (fi width) $ reverse $ toTags actionNamesZ
 
   foldM_ printChoice topRow $ toTags choiceNamesZ
 
@@ -213,6 +214,7 @@ render = do
 
   io $ do color fgColor >>= setForeground disp gc
           drawLine disp pixmap gc (fi width - 1) 0 (fi width - 1) (fi height)
+          drawLine disp pixmap gc 0 topRow (fi width) topRow
 
           moveResizeWindow disp win wx wy width (fi height)
 
@@ -240,6 +242,11 @@ handleKeys = do
             where
               defaultHandle
                 | mask == 0 || mask == shiftMask = input (ins str)
+                | (mask == mod) && (str /= "") = do -- M-<first letter>
+                    actions <- gets (fst . toIndex . _action)
+                    let h = head str
+                        matchIndex = findIndex ((== h) . head . show) actions
+                    maybe nop (\i -> setNthAction i >> select) matchIndex
                 | otherwise = nop
 
 -------- Menu actions for binding.
@@ -280,6 +287,13 @@ ins s (Input l r) = Input (l ++ s) r
 
 del :: Input -> Input
 del (Input l r) = Input (take (length l - 1) l) r
+
+nextAction :: Menu a b ()
+nextAction = modify $ \s -> s { _action = focusDownZ (_action s) }
+
+setNthAction :: Int -> Menu a b ()
+setNthAction i = modify $ \s -> s { _action = fromIndex (fst $ toIndex $ _action s) i }
+
 
 complete :: (Show a, Options a b) => Menu a b ()
 complete = do

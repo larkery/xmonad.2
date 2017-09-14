@@ -59,7 +59,7 @@ type=internal/xwindow
 [module/wslog]
 type=custom/script
 tail=true
-exec=xprop -root -spy 8s '\n$0\n' _XMONAD_LOG | grep --line-buffered -v _XMONAD_LOG | while read line; do eval echo $line; done
+exec=xprop -root -spy 8s '\n$0\n' _XMONAD_LOG | grep --line-buffered -v _XMONAD_LOG | while read line; do echo -e $line; done
 
 [module/cpu]
 type = internal/cpu

@@ -64,8 +64,10 @@ workspaceMenu = do
 
   command <- menu def (findTag tags)
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
-  where findTag tags s = return $ map wrap $ filter (matches s) tags -- etc.
-        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = [_view, _del] }
+  where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
+        new tags s = if s `elem` tags || s == "" then [] else
+                       [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _shift]})]
+        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = [_view, _del, _shift] }
         _view = A {_actionLabel = "view", _action = windows . W.greedyView}
         _create = A {_actionLabel = "create", _action = addWorkspace}
         _shift = A {_actionLabel = "shift", _action = withFocused . shiftWindowToNew}
