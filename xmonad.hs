@@ -8,6 +8,9 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
 import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
+import Data.Maybe
+import XMonad.Util.WorkspaceCompare ( getSortByIndex )
+
 import qualified XMonad.StackSet as W
 
 main = xmonad mconfig
@@ -61,4 +64,21 @@ mkeys =
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
-  ]
+  ] ++
+  concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
+  where view n = withNthNEWorkspace W.greedyView (n - 1)
+        shiftTo n = withNthNEWorkspace W.shift (n - 1)
+
+withNthNEWorkspace :: (String -> WindowSet -> WindowSet) -> Int -> X ()
+withNthNEWorkspace job wnum = do ws <- nonEmptyNames
+                                 case drop wnum ws of
+                                   (w:_) -> windows $ job $ w
+                                   [] -> return ()
+
+
+nonEmptyNames :: X [WorkspaceId]
+nonEmptyNames = do sort <- getSortByIndex
+                   ws <- gets windowset
+                   let spaces = (map W.workspace ((W.current ws):(W.visible ws))) ++
+                                (filter (isJust . W.stack) $ W.hidden ws)
+                   return $ map W.tag $ sort spaces
