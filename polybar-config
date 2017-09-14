@@ -27,7 +27,7 @@ margin-bottom = 0
 
 [bar/example]
 width = 100%
-height = 24
+height = 20
 offset-x = 0
 offset-y = 0
 
@@ -37,10 +37,7 @@ foreground = ${colors.foreground}
 overline-size = 2
 underline-size = 2
 
-border-bottom = 0
-border-bottom-color = #333
-
-spacing = 1
+spacing = 0
 padding-left = 0
 padding-right = 2
 module-margin-left = 1
@@ -49,17 +46,20 @@ module-margin-right = 2
 font-0 = Hasklig:pixelsize=9;0
 font-1 = FontAwesome:size=6;-1
 
-modules-left = xmonad
+modules-left = wslog
+modules-center = title
 modules-right = cpu battery date
 
 tray-position = right
 tray-padding = 2
 
-[module/xmonad]
-type = custom/script
-exec = xmonad-log
+[module/title]
+type=internal/xwindow
 
-tail = true
+[module/wslog]
+type=custom/script
+tail=true
+exec=xprop -root -spy 8s '\n$0\n' _XMONAD_LOG | grep --line-buffered -v _XMONAD_LOG | while read line; do eval echo $line; done
 
 [module/cpu]
 type = internal/cpu

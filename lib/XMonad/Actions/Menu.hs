@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, Rank2Types #-}
+{-# LANGUAGE ScopedTypeVariables, MultiParamTypeClasses, RankNTypes #-}
 module XMonad.Actions.Menu where
 
 import XMonad
@@ -64,7 +64,7 @@ data MenuState a b = MenuState
 
     _generator :: String -> X [a],
     _input :: Input,
-    _action :: Maybe b,
+    _action :: Zipper b,
     _choices :: Zipper a,
     _keys :: !(M.Map (KeyMask, KeySym) (Menu a b ())),
     _rect :: Rectangle
@@ -137,7 +137,7 @@ runLoop = do
   (done, (choices, action)) <- gets (_done &&& _choices &&& _action)
 
   case (done, choices, action) of
-    (Select, Just (W.Stack f _ _), Just ac) -> return $ Just (f, ac)
+    (Select, Just (W.Stack f _ _), Just (W.Stack ac _ _)) -> return $ Just (f, ac)
     _ -> return Nothing
 
 -- takeZ n Nothing = (Nothing, False)
@@ -149,23 +149,29 @@ render = do
   MenuState { _display = disp, _window = win,
               _gc = gc,        _xfont = font,
               _choices = choices,
+              _action = actions,
               _config = (MenuConfig {_foreground = fgColor, _background = bgColor, _location = loc }),
               _input = input,
               _rect = screenRectangle
               } <- get
   let choiceNamesZ = mapZ_ show choices
+      actionNamesZ = mapZ_ show actions
 
   choiceHeights <- mapM (textExtentsXMF font) $ fst $ toIndex $ choiceNamesZ
 
   let heights = map (\(a, b) -> a + b) choiceHeights
       hasInput = not $ blank input
       inputS = conc input
+      hasActions = isJust actionNamesZ
 
-  inputHeight <- if hasInput then textExtentsXMF font inputS else return (0, 0)
+  inputHeights <- if hasInput then textExtentsXMF font inputS else return (0, 0)
+  actionsHeights <- fromMaybe (return (0,0)) (textExtentsXMF font <$> getFocusZ actionNamesZ)
 
-  let height = 2+sum heights + (fst inputHeight + snd inputHeight)
+  let inputHeight = (fst inputHeights + snd inputHeights)
+      actionsHeight = (fst actionsHeights + snd actionsHeights)
+      height = 2 + sum heights + inputHeight + actionsHeight -- also needs height of action
       width = 400
-      topRow = 1 + (fst inputHeight + snd inputHeight)
+      topRow = 1 + max inputHeight actionsHeight
 
   pixmap <- io $ createPixmap disp win (fi width) (fi height) (defaultDepthOfScreen (defaultScreenOfDisplay disp))
 
@@ -187,9 +193,19 @@ render = do
         return $ y + e1 + e2
 
   lift $ paintWindow pixmap width (fi height) 1 bgColor fgColor
-  when hasInput $ do
-    io $ paintBox 1 1 (width - 2) (fi (fst inputHeight + snd inputHeight)) bgColor
-    printStringXMF disp pixmap font gc fgColor bgColor 2 (1 + fst inputHeight) ("> " ++ inputS)
+  when (hasInput || hasActions) $ do
+    io $ paintBox 1 1 (width - 2) (fi inputHeight) bgColor
+    when hasInput $ do
+      printStringXMF disp pixmap font gc fgColor bgColor 2 (1 + fst inputHeights) ("> " ++ inputS)
+    when hasActions $ do
+      -- print actions centered?
+      let printAction x s = either (printCol fgColor bgColor x) (printCol bgColor fgColor x) s
+          y0 = (1 + fst actionsHeights)
+          printCol fg bg x s = do
+            w <- textWidthXMF disp font s
+            printStringXMF disp pixmap font gc fg bg (x - fi w) y0 s
+            return $ x - ((fi w) + 4)
+      foldM_ printAction (fi width - 1) $ toTags actionNamesZ
 
   foldM_ printChoice topRow $ toTags choiceNamesZ
 
@@ -231,7 +247,7 @@ handleKeys = do
 
 fixAction :: (Options a b) => MenuState a b -> MenuState a b
 fixAction s@(MenuState {_choices = Nothing}) = s {_action = Nothing}
-fixAction s@(MenuState {_choices = Just (W.Stack f _ _)}) = s { _action = listToMaybe $ options f }
+fixAction s@(MenuState {_choices = Just (W.Stack f _ _)}) = s { _action = fromIndex (options f) 0 }
 
 nop :: Menu a b ()
 nop = return ()
