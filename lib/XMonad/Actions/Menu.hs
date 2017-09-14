@@ -30,15 +30,20 @@ data MenuConfig a b = MenuConfig
 
 data ExitState = Select | Cancel | Continue deriving Eq
 
-instance (Show a, Options a b) => Default (MenuConfig a b) where
-  def = MenuConfig { _foreground = "white", _background = "Black", _font = "xft:Monospace-10",
+instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
+  def = MenuConfig { _foreground = "#afa", _background = "black", _font = "xft:Monospace-10",
                      _keymap = [ ("C-g", quit),
                                  ("C-p", up), ("C-n", down),
                                  ("<Up>", up), ("<Down>", down),
+                                 ("<Tab>", down),
+                                 ("S-<Tab>", up),
+                                 ("M1-<Tab>", nextAction),
+                                 ("M1-S-<Tab>", prevAction),
                                  ("<Return>", select),
                                  ("<Escape>", quit),
                                  ("<Backspace>", input del),
-                                 ("<Tab>", nextAction),
+                                 ("<Right>", nextAction),
+                                 ("<Left>", prevAction),
                                  ("C-i", complete),
                                  ("M1-i", completeThis)
                                ],
@@ -253,9 +258,15 @@ handleKeys = do
 -------- Menu actions for binding.
 --------------------------------------------------------------------------------
 
-fixAction :: (Options a b) => MenuState a b -> MenuState a b
+fixAction :: (Show b, Options a b) => MenuState a b -> MenuState a b
 fixAction s@(MenuState {_choices = Nothing}) = s {_action = Nothing}
-fixAction s@(MenuState {_choices = Just (W.Stack f _ _)}) = s { _action = fromIndex (options f) 0 }
+fixAction s@(MenuState {_action = acs, _choices = Just (W.Stack f _ _)}) =
+  let mName = show <$> (getFocusZ acs) in
+  s { _action = fromTags $
+                flip map (options f) $
+                \a -> if Just (show a) == mName then
+                  Right a else Left a }
+
 
 nop :: Menu a b ()
 nop = return ()
@@ -263,16 +274,16 @@ nop = return ()
 quit :: Menu a b ()
 quit = modify $ \s->s {_done = Cancel}
 
-up :: (Options a b) => Menu a b ()
+up :: (Show b, Options a b) => Menu a b ()
 up = modify $ \s -> fixAction $ s { _choices = focusUpZ (_choices s) }
 
-down :: (Options a b) => Menu a b ()
+down :: (Show b, Options a b) => Menu a b ()
 down = modify $ \s -> fixAction $ s { _choices = focusDownZ (_choices s) }
 
 select :: Menu a b ()
 select = modify $ \s->s{ _done = Select }
 
-input :: (Options a b) => (Input -> Input) -> Menu a b ()
+input :: (Show b, Options a b) => (Input -> Input) -> Menu a b ()
 input f = do
   (curInput :: Input, generator) <- gets (_input &&& _generator)
   let input' :: Input
@@ -292,13 +303,16 @@ del (Input l r) = Input (take (length l - 1) l) r
 nextAction :: Menu a b ()
 nextAction = modify $ \s -> s { _action = focusDownZ (_action s) }
 
+prevAction :: Menu a b ()
+prevAction = modify $ \s -> s { _action = focusUpZ (_action s) }
+
 setNthAction :: Int -> Menu a b ()
 setNthAction i = modify $ \s -> s { _action = fromIndex (fst $ toIndex $ _action s) i }
 
-completeThis :: (Show a) => Menu a b ()
-completeThis = modify $ \s -> s { _input = Input (fromMaybe "" (show <$> (getFocusZ $ _choices s))) "" }
+completeThis :: (Show a, Show b, Options a b) => Menu a b ()
+completeThis = modify $ \s -> fixAction $ s { _input = Input (fromMaybe "" (show <$> (getFocusZ $ _choices s))) "" }
 
-complete :: (Show a, Options a b) => Menu a b ()
+complete :: (Show a, Show b, Options a b) => Menu a b ()
 complete = do
   (choices :: [String], leftIn :: String) <- gets (((map show) . fst . toIndex . _choices) &&& (lhs . _input))
   -- find common prefix of choices

@@ -12,6 +12,7 @@ import XMonad.Prompt.Shell (getCommands)
 import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.WindowBringer (bringWindow)
 import XMonad.Actions.WithAll (killAll)
+import XMonad.Util.Run (safeSpawn)
 
 import qualified XMonad.StackSet as W
 
@@ -36,8 +37,9 @@ windowMenu = do
           allWindows = (gets (W.allWindows . windowset)) >>= mapM getName
           _focus :: Action NamedWindow
           _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (unName nw)}
+          _bring = A {_actionLabel = "bring", _action = windows . bringWindow . unName }
           wrap :: NamedWindow -> Choice NamedWindow
-          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = [_focus] }
+          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = [_focus, _bring] }
 
 commandMenu = do
   allCommands <- io $ getCommands
@@ -49,8 +51,9 @@ commandMenu = do
                               if null ms then [s] else ms
         run :: Action String
         run = A { _actionLabel = "run", _action = \c -> spawn c }
+        term = A { _actionLabel = "term", _action = \c -> safeSpawn "urxvt" ["-e", c]  }
         wrap :: String -> Choice String
-        wrap c = C { _value = c, _choiceLabel = c, _actions=[run] }
+        wrap c = C { _value = c, _choiceLabel = c, _actions=[run, term] }
 
 workspaceMenu = do
   ws <- gets windowset

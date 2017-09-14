@@ -45,4 +45,9 @@ mkeys =
   , ( "M-;", windowMenu )
   , ( "M-p", commandMenu )
   , ( "M-S-;", workspaceMenu )
+  , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
+  , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
+  , ( "<XF86AudioMute>", spawn "pamixer -t" )
+  , ( "<XF86MonBrightnessUp>", spawn "xbacklight -inc 10" )
+  , ( "<XF86MonBrightnessDown>", spawn "xbacklight -dec 10" )
   ]
