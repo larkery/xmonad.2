@@ -28,7 +28,7 @@ addLog c = c
        {
          ppTitle   = const ""
        , ppCurrent = wrap "%{u#ffffff +u F#fff}" "%{-u F-}"
-       , ppVisible = wrap "%{u#00ff00 +u F#fff}" "%{-u F-}"
+       , ppVisible = wrap "%{u#00ff00 +u F#0f0}" "%{-u F-}"
        , ppUrgent  = wrap "%{u#ff0000 +u}" "%{-u}"
        , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
        }
