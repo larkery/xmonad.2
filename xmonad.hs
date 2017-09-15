@@ -20,18 +20,17 @@ main = xmonad mconfig
 
 addLog c = c
   {
-    logHook = (logHook c) >> (genPP >>= dynamicLogString >>= xmonadPropLog)
+    logHook = (logHook c) >> (dynamicLogString pp >>= xmonadPropLog)
   , startupHook = (startupHook c) >> spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
   } where
-  genPP = do
-    wc <- gets (show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)
-    return $ def
+  whiten = wrap "%{F#fff}" "%{F-}"
+  pp = def
        {
          ppTitle   = const ""
        , ppCurrent = wrap "%{u#ffffff +u F#fff}" "%{-u F-}"
        , ppVisible = wrap "%{u#00ff00 +u F#fff}" "%{-u F-}"
        , ppUrgent  = wrap "%{u#ff0000 +u}" "%{-u}"
-       , ppLayout  = wrap "%{F#fff}" (" ("++ wc ++")%{F-}")
+       , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
        }
 
 mconfig =
