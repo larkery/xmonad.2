@@ -20,15 +20,18 @@ main = xmonad mconfig
 
 addLog c = c
   {
-    logHook = (logHook c) >> (dynamicLogString pp >>= xmonadPropLog)
+    logHook = (logHook c) >> (genPP >>= dynamicLogString >>= xmonadPropLog)
   , startupHook = (startupHook c) >> spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
   } where
-  pp = def
+  genPP = do
+    wc <- gets (show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)
+    return $ def
        {
          ppTitle   = const ""
        , ppCurrent = wrap "%{u#ffffff +u F#fff}" "%{-u F-}"
        , ppVisible = wrap "%{u#00ff00 +u F#fff}" "%{-u F-}"
        , ppUrgent  = wrap "%{u#ff0000 +u}" "%{-u}"
+       , ppLayout  = wrap "%{F#fff}" (" ("++ wc ++")%{F-}")
        }
 
 mconfig =
@@ -73,7 +76,8 @@ mkeys =
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
-
+  , ( "M-C-n", moveTo Next HiddenNonEmptyWS )
+  , ( "M-C-p", moveTo Prev HiddenNonEmptyWS )
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
