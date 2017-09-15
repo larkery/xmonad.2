@@ -76,17 +76,18 @@ commandMenu = do
         wrap :: String -> Choice String
         wrap c = C { _value = c, _choiceLabel = c, _actions=[run, term] }
 
-workspaceMenu = do
+workspaceMenu key = do
   ws <- gets windowset
 
-  let current = W.tag $ W.workspace $ W.current ws
+  let addDown c = c { _keymap = (key, down):(_keymap c) }
+      current = W.tag $ W.workspace $ W.current ws
       visible = map (W.tag . W.workspace) $ W.visible ws
       (hiddenW, hiddenEmptyW) = partition (isJust . W.stack) $ W.hidden ws
       (hidden, hiddenEmpty) = (map W.tag hiddenW, map W.tag hiddenEmptyW)
 
       tags = current:(visible ++ hidden ++ hiddenEmpty)
 
-  command <- menu def (findTag tags)
+  command <- menu (addDown def) (findTag tags)
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
   where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
         new tags s = if s `elem` tags || s == "" then [] else
@@ -100,11 +101,12 @@ workspaceMenu = do
         shiftWindowToNew ws w = do addHiddenWorkspace ws
                                    windows $ W.shiftWin ws w
 
-sysMenu = do
-  r <- menu def gen :: X (Maybe (Choice (X ()), Action (X ())))
+sysMenu k = do
+  r <- menu (addDown def) gen :: X (Maybe (Choice (X ()), Action (X ())))
   whenJust r $ \(x, a) -> (_action a) (_value x)
   where gen :: String -> X [Choice (X ())]
         gen s = return $ filter ((matches s) . show) commands
+        addDown c = c { _keymap = (k, down):(_keymap c) }
         commands :: [Choice (X ())]
         commands = [com "reload" $ spawn reloadCommand,
                     com "hibernate" $ spawn "systemctl hibernate",

@@ -58,8 +58,8 @@ mkeys =
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
   , ( "M-x", commandMenu )
-  , ( "M-;", workspaceMenu )
-  , ( "M-q", sysMenu )
+  , ( "M-;", workspaceMenu "M-;" )
+  , ( "M-q", sysMenu "M-q" )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
