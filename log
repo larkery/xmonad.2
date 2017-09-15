@@ -1,0 +1,2 @@
+#!/bin/sh
+xprop -root -f _XMONAD_LOG 8s -set _XMONAD_LOG a; xprop -root -spy 8s '\n$0\n' _XMONAD_LOG | grep --line-buffered -v _XMONAD_LOG | while read line; do echo -e $line; done

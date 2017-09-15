@@ -55,7 +55,7 @@ mkeys =
     ( "M-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
-  , ( "M-/", commandMenu )
+  , ( "M-x", commandMenu )
   , ( "M-;", workspaceMenu )
   , ( "M-q", sysMenu )
 
@@ -66,8 +66,8 @@ mkeys =
   , ( "<XF86MonBrightnessDown>", spawn "xbacklight -dec 10" )
 
   , ( "M-n", windows $ W.focusDown )
-  , ( "M-C-n", rotSlavesDown )
-  , ( "M-C-p", rotSlavesUp )
+  , ( "M-M1-n", rotSlavesDown )
+  , ( "M-M1-p", rotSlavesUp )
 
   , ( "M-p", windows $ W.focusUp )
   , ( "M-S-n", windows $ W.swapDown )
