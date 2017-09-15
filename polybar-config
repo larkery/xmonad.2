@@ -48,7 +48,7 @@ font-1 = FontAwesome:size=6;-1
 
 modules-left = wslog
 modules-center = title
-modules-right = cpu battery date
+modules-right = cpu battery volume date
 
 tray-position = right
 tray-padding = 2
@@ -59,7 +59,7 @@ type=internal/xwindow
 [module/wslog]
 type=custom/script
 tail=true
-exec=xprop -root -spy 8s '\n$0\n' _XMONAD_LOG | grep --line-buffered -v _XMONAD_LOG | while read line; do echo -e $line; done
+exec=~/.xmonad/log
 
 [module/cpu]
 type = internal/cpu
@@ -118,5 +118,12 @@ animation-charging-3 = ""
 animation-charging-4 = ""
 animation-charging-foreground = ${colors.foreground-alt}
 animation-charging-framerate = 750
+
+[module/volume]
+type=internal/volume
+
+format-volume = <label-volume>
+label-muted = "mute"
+format-volume-underline = ${colors.orange}
 
 ; vim:ft=dosini

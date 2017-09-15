@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types #-}
 
-module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu) where
+module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, sysMenu, passMenu) where
 
 import XMonad
 import XMonad.Actions.Menu hiding (_action)
@@ -12,7 +12,9 @@ import XMonad.Prompt.Shell (getCommands)
 import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.WindowBringer (bringWindow)
 import XMonad.Actions.WithAll (killAll)
-import XMonad.Util.Run (safeSpawn)
+import XMonad.Util.Run (safeSpawn, runProcessWithInput)
+import System.Directory (getHomeDirectory)
+import System.FilePath (takeExtension, dropExtension, combine)
 
 import qualified XMonad.StackSet as W
 
@@ -30,16 +32,35 @@ instance Options (Choice a) (Action a) where
 
 matches s = isInfixOf s . (map toLower)
 
-windowMenu = do
-  window <- menu def getWindows :: X (Maybe (Choice NamedWindow, Action NamedWindow))
+data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
+
+instance Show NTWindow where
+  show (NTWindow {name = n, tag = t}) = "["++t++"] "++n
+
+windowMenu  k = do
+  let addDown c = c { _keymap = (k, down):(_keymap c) }
+  window <- menu (addDown def) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
     where getWindows s = ((filter (matches s . _choiceLabel)) . (map wrap)) <$> allWindows
-          allWindows = (gets (W.allWindows . windowset)) >>= mapM getName
-          _focus :: Action NamedWindow
-          _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (unName nw)}
-          _bring = A {_actionLabel = "bring", _action = windows . bringWindow . unName }
-          wrap :: NamedWindow -> Choice NamedWindow
-          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = [_focus, _bring] }
+          toNTWindow :: (String, Window) -> X NTWindow
+          toNTWindow (t, w) = do n <- getName w
+                                 return $ NTWindow w (show n) t
+
+          allWindows :: X [NTWindow]
+          allWindows = (gets ((concatMap tagWindows) . W.workspaces . windowset)) >>= (mapM toNTWindow)
+
+          tagWindows :: W.Workspace i l a -> [(i, a)]
+          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map ((,) t) $ W.integrate' st
+
+          _focus :: Action NTWindow
+          _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (window nw)}
+          _bring = A {_actionLabel = "bring", _action = windows . bringWindow . window }
+          _master = A {_actionLabel = "mastr", _action = windows . (\w -> W.swapMaster .
+                                                                     (W.focusWindow w) .
+                                                                     (bringWindow w)) . window }
+
+          wrap :: NTWindow -> Choice NTWindow
+          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = [_focus, _bring, _master] }
 
 commandMenu = do
   allCommands <- io $ getCommands
@@ -78,3 +99,44 @@ workspaceMenu = do
         _rename = A {_actionLabel = "rename", _action = renameWorkspaceByName}
         shiftWindowToNew ws w = do addHiddenWorkspace ws
                                    windows $ W.shiftWin ws w
+
+sysMenu = do
+  r <- menu def gen :: X (Maybe (Choice (X ()), Action (X ())))
+  whenJust r $ \(x, a) -> (_action a) (_value x)
+  where gen :: String -> X [Choice (X ())]
+        gen s = return $ filter ((matches s) . show) commands
+        commands :: [Choice (X ())]
+        commands = [com "reload" $ spawn reloadCommand,
+                    com "hibernate" $ spawn "systemctl hibernate",
+                    com "suspend" $ spawn "systemctl suspend",
+                    com "wifi" $ spawn "wpa_gui",
+                    com "pass" passMenu
+                   ]
+        reloadCommand = "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
+        _run :: Action (X ())
+        _run = A { _actionLabel = "", _action = id }
+        com :: String -> X () -> Choice (X ())
+        com l a = C { _value = a, _choiceLabel = l, _actions = [_run] }
+
+passMenu = do
+  h <- io $ getHomeDirectory
+  passwordFiles <- io $ runProcessWithInput "find" [ combine h ".password-store"
+                                                   ,  "-type" , "f"
+                                                   , "-name", "*.gpg"
+                                                   , "-printf", "%P\n"] []
+
+  ac <- menu def (gen (map (wrap . unsuffix ".gpg") $ lines passwordFiles))
+  whenJust ac $ \(C {_value = p}, A{_action = a}) -> a p
+  return ()
+  where unsuffix :: String -> String -> String
+        unsuffix s i
+          | takeExtension i == s = dropExtension i
+          | otherwise = i
+
+        gen :: [Choice String] -> String -> X [Choice String]
+        gen ps s = return $ filter (matches s . show) ps
+
+        wrap p = C { _value = p, _choiceLabel = p, _actions = [open, user, pass] }
+        open = A { _action = \p -> spawn $ "passm -l "++p, _actionLabel = "open" }
+        user = A { _action = \p -> spawn $ "passm -f user -p -c "++p, _actionLabel = "u/p" }
+        pass = A { _action = \p -> spawn $ "passm -c -p "++p, _actionLabel = "pass" }

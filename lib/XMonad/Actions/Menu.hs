@@ -25,7 +25,7 @@ data MenuConfig a b = MenuConfig
     _font :: String,
     _keymap :: [(String, Menu a b ())],
     _rowLimit :: Int,
-    _location :: Rectangle -> (Dimension, Dimension) -> (Position, Position)
+    _location :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
   }
 
 data ExitState = Select | Cancel | Continue deriving Eq
@@ -34,6 +34,7 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
   def = MenuConfig { _foreground = "#9f9", _background = "black", _font = "xft:Monospace-10",
                      _keymap = [ ("C-g", quit),
                                  ("C-p", up), ("C-n", down),
+                                 ("M-p", up), ("M-n", down),
                                  ("<Up>", up), ("<Down>", down),
                                  ("<Tab>", down),
                                  ("S-<Tab>", up),
@@ -51,15 +52,16 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
                      _location = middleOfScreen
                    }
 
-middleOfScreen :: Rectangle -> (Dimension, Dimension) -> (Position, Position)
-middleOfScreen (Rectangle sx sy sw sh) (width, height) =
+middleOfScreen :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
+middleOfScreen _ _ (Just x) = x
+middleOfScreen (Rectangle sx sy sw sh) (width, height) Nothing =
   let hw = width `div` 2
       hh = height `div` 2
       hsw = sw `div` 2
       hsh = sh `div` 2
   in
     (fi $ (fi sx) + (hsw - hw),
-     fi $ (fi sy) + (hsh - 100))
+     fi $ (fi sy) + (hsh - hh))
 
 data MenuState a b = MenuState
   { _config :: MenuConfig a b,
@@ -74,7 +76,8 @@ data MenuState a b = MenuState
     _action :: Zipper b,
     _choices :: Zipper a,
     _keys :: !(M.Map (KeyMask, KeySym) (Menu a b ())),
-    _rect :: Rectangle
+    _rect :: Rectangle,
+    _lastCoords :: Maybe (Position, Position)
   }
 
 data Input = Input String String deriving Eq
@@ -116,7 +119,8 @@ menu c g = do
           _action = Nothing,
           _choices = fromIndex input 0,
           _keys = M.fromList $ mapMaybe (\(k, a) -> fmap (flip (,) a) (readKey mod k)) (_keymap c),
-          _rect = rect
+          _rect = rect,
+          _lastCoords = Nothing
         }
 
   out <- evalStateT runLoop (state :: MenuState a b)
@@ -159,7 +163,8 @@ render = do
               _action = actions,
               _config = (MenuConfig {_foreground = fgColor, _background = bgColor, _location = loc }),
               _input = input,
-              _rect = screenRectangle
+              _rect = screenRectangle,
+              _lastCoords = lastCoords
               } <- get
   let choiceNamesZ = mapZ_ show choices
       actionNamesZ = mapZ_ show actions
@@ -169,14 +174,15 @@ render = do
   let heights = map (\(a, b) -> a + b) choiceHeights
       hasInput = not $ blank input
       inputS = conc input
-      hasActions = isJust actionNamesZ
+      hasActions = foldrZ_ ((||) . (not . null)) False actionNamesZ
 
   inputHeights <- if hasInput then textExtentsXMF font inputS else return (0, 0)
-  actionsHeights <- fromMaybe (return (0,0)) (textExtentsXMF font <$> getFocusZ actionNamesZ)
+  actionsHeights <- if hasActions then fromMaybe (return (0,0)) (textExtentsXMF font <$> getFocusZ actionNamesZ)
+                    else return (0,0)
 
   let inputHeight = (fst inputHeights + snd inputHeights)
       actionsHeight = (fst actionsHeights + snd actionsHeights)
-      height = 2 + sum heights + max inputHeight actionsHeight -- also needs height of action
+      height = 2 + sum heights + max inputHeight actionsHeight
       width = 400
       topRow = 1 + max inputHeight actionsHeight
 
@@ -216,7 +222,9 @@ render = do
 
   foldM_ printChoice topRow $ toTags choiceNamesZ
 
-  let (wx, wy) = loc screenRectangle (fi width, fi height)
+  let (wx, wy) = loc screenRectangle (fi width, fi height) lastCoords
+
+  modify $ \s->s{_lastCoords = Just (wx, wy)}
 
   io $ do color fgColor >>= setForeground disp gc
           drawLine disp pixmap gc (fi width - 1) 0 (fi width - 1) (fi height)
@@ -251,7 +259,7 @@ handleKeys = do
                 | (mask == mod) && (str /= "") = do -- M-<first letter>
                     actions <- gets (fst . toIndex . _action)
                     let h = head str
-                        matchIndex = findIndex ((== h) . head . show) actions
+                        matchIndex = findIndex ((== h) . head . show) $ filter (not . null . show) actions
                     maybe nop (\i -> setNthAction i >> select) matchIndex
                 | otherwise = nop
 
