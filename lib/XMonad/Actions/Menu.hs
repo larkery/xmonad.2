@@ -25,7 +25,10 @@ data MenuConfig a b = MenuConfig
     _font :: String,
     _keymap :: [(String, Menu a b ())],
     _rowLimit :: Int,
-    _location :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
+    _location :: Rectangle ->
+                 (Dimension, Dimension) ->
+                 Maybe (Position, Position) ->
+                 (Position, Position)
   }
 
 data ExitState = Select | Cancel | Continue deriving Eq
