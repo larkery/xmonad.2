@@ -68,8 +68,11 @@ instance LayoutClass AdjustableTall a where
     where
       cap = _capacity l
 
-      resize Shrink = l { _hsplit = max 0 $ (_hsplit l) - (1/8) }
-      resize Expand = l { _hsplit = min 1 $ (_hsplit l) + (1/8) }
+      resize Shrink = l { _hsplit = snap $ max 0 $ (_hsplit l) - (1/8) }
+      resize Expand = l { _hsplit = snap $ min 1 $ (_hsplit l) + (1/8) }
+
+      snap :: Rational -> Rational
+      snap n = (fromIntegral (round $ n * (16 :: Rational))) / 16
 
       incmastern (IncMasterN d) = l { _capacity = max 0 (cap + d) }
 

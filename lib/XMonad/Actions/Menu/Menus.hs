@@ -31,6 +31,7 @@ instance Options (Choice a) (Action a) where
   options (C {_actions = as}) = as
 
 matches s = isInfixOf s . (map toLower)
+starts s = (== s) . (map toLower) . (take (length s))
 
 data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 
@@ -105,7 +106,7 @@ sysMenu k = do
   r <- menu (addDown def) gen :: X (Maybe (Choice (X ()), Action (X ())))
   whenJust r $ \(x, a) -> (_action a) (_value x)
   where gen :: String -> X [Choice (X ())]
-        gen s = return $ filter ((matches s) . show) commands
+        gen s = return $ filter ((starts s) . show) commands
         addDown c = c { _keymap = (k, down):(_keymap c) }
         commands :: [Choice (X ())]
         commands = [com "reload" $ spawn reloadCommand,

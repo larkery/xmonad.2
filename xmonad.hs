@@ -14,6 +14,10 @@ import XMonad.Util.WorkspaceCompare ( getSortByIndex )
 import XMonad.Hooks.NotifyUrgencyHook
 import XMonad.Actions.RotSlaves
 import XMonad.Layout.AdjustableTall
+import XMonad.Hooks.ManageHelpers
+import XMonad.Layout.FullscreenToggleStruts
+import XMonad.Actions.SelectWindow
+import qualified XMonad.Layout.Fullscreen as FS
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -30,13 +34,23 @@ addLog c = c
   pp = def
        {
          ppTitle   = const ""
-       , ppCurrent = wrap "%{u#ffffff +u F#fff}" "%{-u F-}"
-       , ppVisible = wrap "%{u#00ff00 +u F#0f0}" "%{-u F-}"
-       , ppUrgent  = wrap "%{u#ff0000 +u}" "%{-u}"
+       , ppCurrent = wrap "%{u#fff +u F#fff}+" "%{-u F-}"
+       , ppVisible = wrap "%{F#fff}~" "%{F-}"
+       , ppHidden = wrap "%{F#ccc}-" "%{F-}"
+       , ppUrgent  = wrap "%{u#f00 +u}!" "!%{-u}"
        , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
        }
 
+specialWindows c = c { manageHook = (manageHook c) <+> rules}
+  where rules = composeAll [ isDialog --> doFloat
+                           , transience'
+                           , className =? "Xmessage" --> doFloat
+                           , className =? "Yad" --> doFloat
+                           , className =? "XClock" --> doFloat ]
+
 mconfig =
+  FS.fullscreenSupport $
+  specialWindows $
   notifyUrgent $
   addLog $
   ewmh $ docks $
@@ -56,7 +70,9 @@ mconfig =
                                 else mouseResizeTile (1/4) mouseMoveWindow w
      )]
   )
+
 _layout = trackFloating $
+          fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
           (limitSelect 1 100 $ ajustableTall (1/2) 1) ||| Full
@@ -66,6 +82,7 @@ mkeys =
     ( "M-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
+  , ( "M-'", selectWindow >>= flip whenJust (windows . W.focusWindow) )
   , ( "M-x", commandMenu )
   , ( "M-;", workspaceMenu "M-;" )
   , ( "M-q", sysMenu "M-q" )
