@@ -56,7 +56,8 @@ updateSplits :: [Rational] -> [Rational] -> -- existing splits
 updateSplits ls rs nl nr
   | nl == length ls && nr == length rs = Nothing
   | otherwise = Just (upd ls nl, upd rs nr)
-  where upd xs n = take n $ xs ++ repeat 1
+  where upd xs n = take n $ (scale xs) ++ repeat 1 -- not sure
+        scale xs = map (* (fromIntegral $ length xs)) $ norm xs
 
 instance LayoutClass AdjustableTall a where
   description l = "ATall"
@@ -68,17 +69,17 @@ instance LayoutClass AdjustableTall a where
     where
       cap = _capacity l
 
-      resize Shrink = l { _hsplit = snap $ max 0 $ (_hsplit l) - (1/8) }
-      resize Expand = l { _hsplit = snap $ min 1 $ (_hsplit l) + (1/8) }
+      resize Shrink = l { _hsplit = snap 15 $ max (1/16) $ (_hsplit l) - (1/8) }
+      resize Expand = l { _hsplit = snap 15 $ min (15/16) $ (_hsplit l) + (1/8) }
 
-      snap :: Rational -> Rational
-      snap n = (fromIntegral (round $ n * (16 :: Rational))) / 16
+      snap :: Rational -> Rational -> Rational
+      snap r n = (fromIntegral (round $ n * (r :: Rational))) / r
 
       incmastern (IncMasterN d) = l { _capacity = max 0 (cap + d) }
 
       adjust (AdjustTile n e px)
         -- adjust the central split:
-        | (e == L && n >= cap) || (e == R && n < cap) = l { _hsplit = p }
+        | (e == L && n >= cap) || (e == R && n < cap) = l { _hsplit = max (1/16) $ min (15/16) $ p }
           -- adjust top & bottom thing
         | e == T = adjust (AdjustTile (n-1) B px)
         | e == B && n < cap = l { _leftSplits = adjustSplit (_leftSplits l) n p }
@@ -86,8 +87,8 @@ instance LayoutClass AdjustableTall a where
           -- do nothing
         | otherwise = l
         where Rectangle sx sy sw sh = _lastRect l
-              p | e == L || e == R = (fromIntegral px - fromIntegral sx) / (fromIntegral sw)
-                | otherwise = (fromIntegral px - fromIntegral sy) / (fromIntegral sh)
+              p | e == L || e == R = snap 32 $ (fromIntegral px - fromIntegral sx) / (fromIntegral sw)
+                | otherwise = snap 32 $ (fromIntegral px - fromIntegral sy) / (fromIntegral sh)
 
       adjustSplit :: [Rational] -> Int -> Rational -> [Rational]
       adjustSplit ss n p
@@ -95,10 +96,10 @@ instance LayoutClass AdjustableTall a where
         | otherwise = let (above, below) = splitAt n ss
                           ta = sum above
                           tb = sum below
-                          p' = p * (fromIntegral $ length ss)
-                          a' = p' - ta
+                          p' = p * (sum ss)
+                          a' = max (1/6) p' - ta
                       in case below of
-                           a:(b:cs) -> above ++ a':(b + a - a'):cs
+                           a:(b:cs) -> above ++ a':(max (1/6) $ b + a - a'):cs
                            _ -> ss
 
   doLayout l r st =
