@@ -34,7 +34,7 @@ selectWindow = withDisplay $ \dpy -> do
       winPos = sortOn snd wins
       winKeys = zip keys winPos
       pop (k, (w, (x, y))) = do
-        win <- createNewWindow (Rectangle (fromIntegral x) (fromIntegral y) 50 50) Nothing "black" False
+        win <- createNewWindow (Rectangle (fromIntegral x-25) (fromIntegral y-25) 50 50) Nothing "black" False
         showWindow win
         paintAndWrite win font 50 50 2 "black" "white" "white" "black" [AlignCenter] [[k]]
         return $ (win, k)
