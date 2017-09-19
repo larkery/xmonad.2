@@ -14,9 +14,9 @@ instance UrgencyHook LibNotifyUrgencyHook where
       name <- getName w
       wset <- gets windowset
       let Just idx = W.findTag w wset
+      setBorder "red" w
       when (not $ idx `elem` (map (W.tag . W.workspace) $ (W.current wset):(W.visible wset))) $ do
         safeSpawn "notify-send" [(show name) ++ " urgent on " ++ idx, "-a", "xmonad"]
-        setBorder "red" w
 
 setBorder c w = withDisplay $ \d -> io $ do
   g <- initColor d c
