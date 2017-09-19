@@ -9,7 +9,8 @@ import Control.Monad (msum)
 import Graphics.X11.Xlib.Extras (getWindowAttributes,
                                  WindowAttributes (..))
 import Graphics.X11.Xlib.Misc (warpPointer)
-import Data.List (findIndex)
+import Data.List (findIndex, (\\))
+import qualified Data.Map as M
 import qualified Debug.Trace as D
 
 data Edge = L | R | T | B deriving (Read, Show, Typeable, Eq)
@@ -133,7 +134,8 @@ mouseResizeTile border fallback w =
   wa <- io $ getWindowAttributes dpy w
   (_, _, _, ox', oy', _, _, _) <- io $ queryPointer dpy w
   windows <- gets (W.integrate' . W.stack . W.workspace . W.current . windowset)
-  let (Just n) = findIndex (== w) windows
+  floats <- gets (M.keys . W.floating . windowset)
+  let (Just n) = findIndex (== w) (windows \\ floats)
 
   -- need screen dimensions to figure out proportions
 
