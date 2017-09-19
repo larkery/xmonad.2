@@ -140,6 +140,6 @@ passMenu = do
         gen ps s = return $ filter (matches s . show) ps
 
         wrap p = C { _value = p, _choiceLabel = p, _actions = [open, user, pass] }
-        open = A { _action = \p -> spawn $ "passm -l "++p, _actionLabel = "open" }
-        user = A { _action = \p -> spawn $ "passm -f user -p -c "++p, _actionLabel = "u/p" }
-        pass = A { _action = \p -> spawn $ "passm -c -p "++p, _actionLabel = "pass" }
+        open = A { _action = \p -> spawn $ "passm -l "++p, _actionLabel = "go" }
+        user = A { _action = \p -> spawn $ "passm -f user -p -c "++p, _actionLabel = "both" }
+        pass = A { _action = \p -> spawn $ "passm -c -p "++p, _actionLabel = "sel pass" }
