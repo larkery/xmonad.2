@@ -37,7 +37,7 @@ addLog c = c
        , ppCurrent = wrap "%{u#fff +u F#fff}+" "%{-u F-}"
        , ppVisible = wrap "%{F#fff}~" "%{F-}"
        , ppHidden = wrap "%{F#ccc}-" "%{F-}"
-       , ppUrgent  = wrap "%{u#f00 +u}!" "!%{-u}"
+       , ppUrgent  = wrap "%{F#fff B#f00}" "%{F- B-}"
        , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
        }
 
