@@ -67,7 +67,7 @@ commandMenu = do
   allCommands <- io $ getCommands
   command <- menu def (findCommands allCommands)
   whenJust command $ \(C{_value = c}, A {_action = a}) -> a c
-  where findCommands cs s = let ms = take 20 $ filter (matches s) cs in
+  where findCommands cs s = let ms = filter (matches s) cs in
                               return $
                               map wrap $
                               if null ms then [s] else ms

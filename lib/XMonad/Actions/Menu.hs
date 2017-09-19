@@ -158,18 +158,30 @@ runLoop = do
 -- takeZ n (Just (W.Stack f u d)) =
 --   Just $ W.Stack f (drop nu u) (take nd d)
 
+takeMiddleZ n Nothing = Nothing
+takeMiddleZ n (Just (W.Stack f u d)) =
+  let lup = length u
+      ldown = length d
+      nd2 = (n - 1) `div` 2
+      (up, down) | (lup >= nd2) && (ldown >= nd2) = (take nd2 u, take (n - (nd2 + 1)) d)
+                 | (lup >= nd2) = (take (n - (1 + ldown)) u, d)
+                 | (ldown >= nd2) = (u, take (n - (1 + lup)) d)
+                 | otherwise = (u, d)
+  in Just $ W.Stack f up down
+
 render :: (Show a, Show b) => Menu a b ()
 render = do
   MenuState { _display = disp, _window = win,
               _gc = gc,        _xfont = font,
-              _choices = choices,
+              _choices = allChoices,
               _action = actions,
-              _config = (MenuConfig {_foreground = fgColor, _background = bgColor, _location = loc }),
+              _config = (MenuConfig {_foreground = fgColor, _background = bgColor, _location = loc, _rowLimit = rowLimit }),
               _input = input,
               _rect = screenRectangle,
               _lastCoords = lastCoords
               } <- get
-  let choiceNamesZ = mapZ_ show choices
+  let choices = takeMiddleZ rowLimit allChoices
+      choiceNamesZ = mapZ_ show choices
       actionNamesZ = mapZ_ show actions
 
   choiceHeights <- mapM (textExtentsXMF font) $ fst $ toIndex $ choiceNamesZ
