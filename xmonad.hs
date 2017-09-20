@@ -78,7 +78,7 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          (ajustableTall (1/2) 1) ||| TwoPane (1/2) (1/8) ||| Full
+          (ajustableTall (1/2) 1) ||| TwoPane (1/8) (1/2) ||| Full
 
 mkeys =
   [
