@@ -3,7 +3,7 @@ import XMonad.Layout.NoBorders
 import XMonad.Util.EZConfig
 import XMonad.Layout.LimitWindows
 import XMonad.Hooks.ManageDocks
-import XMonad.Layout.LimitWindows
+import XMonad.Layout.TwoPane
 import XMonad.Layout.TrackFloating
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
@@ -78,7 +78,7 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          (limitSelect 1 100 $ ajustableTall (1/2) 1) ||| Full
+          (ajustableTall (1/2) 1) ||| TwoPane (1/2) (1/8) ||| Full
 
 mkeys =
   [
@@ -89,8 +89,6 @@ mkeys =
   , ( "M-x", commandMenu )
   , ( "M-;", workspaceMenu "M-;" )
   , ( "M-q", sysMenu "M-q" )
-  , ( "M-# 2", setLimit 2 )
-  , ( "M-# 0", setLimit 100 )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
