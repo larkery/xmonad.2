@@ -38,8 +38,8 @@ addLog c = c
        {
          ppTitle   = const ""
        , ppCurrent = bold . fg "#fff" . ul "#fff"
-       , ppVisible = bold . fg "#ddd"
-       , ppHidden  = fg "#ddd"
+       , ppVisible = bold
+       , ppHidden  = id
        , ppUrgent  = bold . fg "#f44"
        , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
        }
