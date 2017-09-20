@@ -31,13 +31,16 @@ addLog c = c
   , startupHook = (startupHook c) >> spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
   } where
   whiten = wrap "%{F#fff}" "%{F-}"
+  bold = wrap "%{T3}" "%{T-}"
+  ul c = wrap ("%{u"++c++" +u}") "%{-u}"
+  fg c = wrap ("%{F"++c++"}") "%{F-}"
   pp = def
        {
          ppTitle   = const ""
-       , ppCurrent = wrap "%{u#fff +u F#fff}+" "%{-u F-}"
-       , ppVisible = wrap "%{F#fff}~" "%{F-}"
-       , ppHidden = wrap "%{F#ccc}-" "%{F-}"
-       , ppUrgent  = wrap "%{F#fff B#f00}" "%{F- B-}"
+       , ppCurrent = bold . fg "#fff" . ul "#fff"
+       , ppVisible = bold . fg "#ddd"
+       , ppHidden  = fg "#ddd"
+       , ppUrgent  = bold . fg "#f44"
        , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
        }
 
