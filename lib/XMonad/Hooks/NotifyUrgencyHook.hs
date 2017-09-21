@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
-module XMonad.Hooks.NotifyUrgencyHook (notifyUrgent) where
+module XMonad.Hooks.NotifyUrgencyHook (notifyUrgent, setBorder) where
 
 import XMonad
 import Control.Monad

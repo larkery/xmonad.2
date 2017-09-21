@@ -5,7 +5,7 @@ module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, sysMen
 import XMonad
 import XMonad.Actions.Menu hiding (_action)
 import XMonad.Util.NamedWindows
-import Data.List (isInfixOf, partition)
+import Data.List (isInfixOf, partition, (\\))
 import Data.Char (toLower)
 import Data.Maybe (isJust)
 import XMonad.Prompt.Shell (getCommands)
@@ -15,6 +15,8 @@ import XMonad.Actions.WithAll (killAll)
 import XMonad.Util.Run (safeSpawn, runProcessWithInput)
 import System.Directory (getHomeDirectory)
 import System.FilePath (takeExtension, dropExtension, combine)
+
+import XMonad.Hooks.NotifyUrgencyHook (setBorder)
 
 import qualified XMonad.StackSet as W
 
@@ -38,17 +40,30 @@ data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 instance Show NTWindow where
   show (NTWindow {name = n, tag = t}) = "["++t++"] "++n
 
+minT = "zzz"
+
 windowMenu  k = do
   let addDown c = c { _keymap = (k, down):(_keymap c) }
   window <- menu (addDown def) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
-    where getWindows s = ((filter (matches s . _choiceLabel)) . (map wrap)) <$> allWindows
+  resetBorders
+    where getWindows s = do
+            ws <- allWindows
+            return $ filter (matches s . _choiceLabel) $ map wrap ws
+
           toNTWindow :: (String, Window) -> X NTWindow
           toNTWindow (t, w) = do n <- getName w
                                  return $ NTWindow w (show n) t
 
           allWindows :: X [NTWindow]
           allWindows = (gets ((concatMap tagWindows) . W.workspaces . windowset)) >>= (mapM toNTWindow)
+
+          resetBorders = do
+            XConf { config = XConfig { focusedBorderColor = focused, normalBorderColor = normal } } <- ask
+            ws <- (gets (concatMap (W.integrate' . W.stack) . W.workspaces . windowset))
+            f <- gets (W.peek . windowset)
+            mapM_ (setBorder normal) ws
+            whenJust f $ setBorder focused
 
           tagWindows :: W.Workspace i l a -> [(i, a)]
           tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map ((,) t) $ W.integrate' st
@@ -61,7 +76,7 @@ windowMenu  k = do
                                                                      (bringWindow w)) . window }
 
           wrap :: NTWindow -> Choice NTWindow
-          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = [_focus, _bring, _master] }
+          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = if tag nw == minT then [_bring, _master] else [_focus, _bring, _master] }
 
 commandMenu = do
   allCommands <- io $ getCommands
@@ -92,8 +107,8 @@ workspaceMenu key = do
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
   where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
         new tags s = if s `elem` tags || s == "" then [] else
-                       [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _shift]})]
-        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = [_view, _del, _shift] }
+                       [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _shift] })]
+        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = if tag == minT then [_shift] else [_view, _del, _shift] }
         _view = A {_actionLabel = "view", _action = windows . W.greedyView}
         _create = A {_actionLabel = "create", _action = addWorkspace}
         _shift = A {_actionLabel = "shift", _action = withFocused . shiftWindowToNew}

@@ -9,7 +9,8 @@ import XMonad.Actions.Menu.Menus
 import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
 import Data.Maybe
-import XMonad.Util.WorkspaceCompare ( getSortByIndex )
+import Data.List ( (\\) )
+import XMonad.Util.WorkspaceCompare ( getSortByTag )
 import XMonad.Hooks.NotifyUrgencyHook
 import XMonad.Actions.RotSlaves
 import XMonad.Layout.AdjustableTall
@@ -17,6 +18,9 @@ import XMonad.Hooks.ManageHelpers
 import XMonad.Layout.FullscreenToggleStruts
 import XMonad.Actions.SelectWindow
 import XMonad.Layout.Limit2
+import XMonad.Actions.WindowBringer (bringWindow)
+import Control.Monad ( join )
+import XMonad.Actions.DynamicWorkspaces
 import qualified XMonad.Layout.Fullscreen as FS
 
 import qualified Data.Map.Strict as M
@@ -43,6 +47,7 @@ addLog c = c
        , ppHidden  = id
        , ppUrgent  = bold . fg "#f44"
        , ppExtras  = [Just <$> (gets numberOfWindows)]
+       , ppSort = getSortByTag
        }
 
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
@@ -103,12 +108,15 @@ mkeys =
   , ( "M-M1-n", rotSlavesDown )
   , ( "M-M1-p", rotSlavesUp )
 
+  , ( "M-y", sendT )
+  , ( "M-u", bringT )
+
   , ( "M-p", windows $ W.focusUp )
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
-  , ( "M-C-n", moveTo Next HiddenNonEmptyWS )
-  , ( "M-C-p", moveTo Prev HiddenNonEmptyWS )
+  , ( "M-C-n", findWorkspace getSortByTag Next interestingWS 1 >>= (windows . W.greedyView))
+  , ( "M-C-p", findWorkspace getSortByTag Prev interestingWS 1 >>= (windows . W.greedyView))
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
@@ -116,6 +124,15 @@ mkeys =
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
   where view n = withNthNEWorkspace W.greedyView (n - 1)
         shiftTo n = withNthNEWorkspace W.shift (n - 1)
+        minT = "zzz"
+        interestingWS = WSIs $ do hs <- gets (map W.tag . W.hidden . windowset)
+                                  return (\w -> isJust (W.stack w) && W.tag w `elem` (hs \\ [minT]))
+        sendT = do addHiddenWorkspace minT
+                   windows (W.shift minT)
+        masterOf tag ss = join $
+          ((listToMaybe . W.integrate' . W.stack) <$>
+            (listToMaybe $ filter ((== tag) . W.tag) $ W.workspaces ss))
+        bringT = windows $ \ss -> fromMaybe ss $ (flip bringWindow ss) <$> (masterOf minT ss)
 
 withNthNEWorkspace :: (String -> WindowSet -> WindowSet) -> Int -> X ()
 withNthNEWorkspace job wnum = do ws <- nonEmptyNames
@@ -125,7 +142,7 @@ withNthNEWorkspace job wnum = do ws <- nonEmptyNames
 
 
 nonEmptyNames :: X [WorkspaceId]
-nonEmptyNames = do sort <- getSortByIndex
+nonEmptyNames = do sort <- getSortByTag
                    ws <- gets windowset
                    let spaces = (map W.workspace ((W.current ws):(W.visible ws))) ++
                                 (filter (isJust . W.stack) $ W.hidden ws)

@@ -70,8 +70,8 @@ instance LayoutClass AdjustableTall a where
     where
       cap = _capacity l
 
-      resize Shrink = l { _hsplit = snap 15 $ max (1/16) $ (_hsplit l) - (1/8) }
-      resize Expand = l { _hsplit = snap 15 $ min (15/16) $ (_hsplit l) + (1/8) }
+      resize Shrink = l { _hsplit = snap 8 $ max (1/8) $ (_hsplit l) - (1/8) }
+      resize Expand = l { _hsplit = snap 8 $ min (7/8) $ (_hsplit l) + (1/8) }
 
       snap :: Rational -> Rational -> Rational
       snap r n = (fromIntegral (round $ n * (r :: Rational))) / r
