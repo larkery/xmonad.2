@@ -12,11 +12,13 @@ import Graphics.X11.Xlib.Misc (warpPointer)
 import Data.List (findIndex, (\\))
 import qualified Data.Map as M
 import qualified Debug.Trace as D
+import Control.Arrow ( first )
 
 data Edge = L | R | T | B deriving (Read, Show, Typeable, Eq)
 
 data AdjustableTileMessage =
-  AdjustTile Int Edge Position
+  AdjustTile Int Edge Position |
+  ExpandTile Int Rational
   deriving (Read, Show, Typeable)
 
 instance Message AdjustableTileMessage
@@ -78,6 +80,17 @@ instance LayoutClass AdjustableTall a where
 
       incmastern (IncMasterN d) = l { _capacity = max 0 (cap + d) }
 
+      adjust  (ExpandTile n r)
+        | n < cap = l { _leftSplits = expand' n (_leftSplits l) }
+        | otherwise = l { _rightSplits = expand' (n - cap) (_rightSplits l) }
+        where a +| b = snap 16 a+b
+              a -| b = snap 16 (a-b)
+              expand' n splits =
+                case first reverse $ splitAt n splits of
+                  ([], h:(t:tt)) -> (h+|r):(t-|r):tt
+                  (u:us, h:(t:tt)) -> (reverse $ (u -| (r/2)):us) ++ (h+|r):(t-|(r/2)):tt
+                  (u:us, h:[]) -> (reverse $ (h+|r):(u -| (r)):us)
+                  _ -> splits
       adjust (AdjustTile n e px)
         -- adjust the central split:
         | (e == L && n >= cap) || (e == R && n < cap) = l { _hsplit = max (1/16) $ min (15/16) $ p }
@@ -167,3 +180,13 @@ mouseResizeTile border fallback w =
     then do io $ warpPointer dpy none w 0 0 0 0 (floor warpx) (floor warpy)
             mouseDrag dragHandler stopHandler
     else fallback w
+
+
+growTileVertically :: Rational -> X ()
+growTileVertically r = do
+  windows <- gets (W.integrate' . W.stack . W.workspace . W.current . windowset)
+  floats <- gets (M.keys . W.floating . windowset)
+  mw <- gets (W.peek . windowset)
+  whenJust mw $ \w-> do
+    let mn = findIndex (== w) (windows \\ floats)
+    whenJust mn $ \n -> sendMessage $ ExpandTile n r

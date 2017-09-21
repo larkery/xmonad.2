@@ -120,6 +120,8 @@ mkeys =
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
+  , ("M-=", growTileVertically (1/8))
+  , ("M--", growTileVertically (-1/8))
   ] ++
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
   where view n = withNthNEWorkspace W.greedyView (n - 1)
