@@ -22,6 +22,7 @@ import XMonad.Actions.WindowBringer (bringWindow)
 import Control.Monad ( join )
 import XMonad.Actions.DynamicWorkspaces
 import qualified XMonad.Layout.Fullscreen as FS
+import XMonad.Actions.Warp (warpToWindow)
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -92,7 +93,7 @@ mkeys =
     ( "M-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
-  , ( "M-'", selectWindow >>= flip whenJust (windows . W.focusWindow) )
+  , ( "M-'", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> (warpToWindow (1/8) (1/8))  )
   , ( "M-x", commandMenu )
   , ( "M-;", workspaceMenu "M-;" )
   , ( "M-q", sysMenu "M-q" )
