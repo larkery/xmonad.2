@@ -3,7 +3,6 @@ import XMonad.Layout.NoBorders
 import XMonad.Util.EZConfig
 import XMonad.Layout.LimitWindows
 import XMonad.Hooks.ManageDocks
-import XMonad.Layout.TwoPane
 import XMonad.Layout.TrackFloating
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
@@ -17,6 +16,7 @@ import XMonad.Layout.AdjustableTall
 import XMonad.Hooks.ManageHelpers
 import XMonad.Layout.FullscreenToggleStruts
 import XMonad.Actions.SelectWindow
+import XMonad.Layout.Limit2
 import qualified XMonad.Layout.Fullscreen as FS
 
 import qualified Data.Map.Strict as M
@@ -34,6 +34,7 @@ addLog c = c
   bold = wrap "%{T3}" "%{T-}"
   ul c = wrap ("%{u"++c++" +u}") "%{-u}"
   fg c = wrap ("%{F"++c++"}") "%{F-}"
+  numberOfWindows = whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset
   pp = def
        {
          ppTitle   = const ""
@@ -41,7 +42,7 @@ addLog c = c
        , ppVisible = bold
        , ppHidden  = id
        , ppUrgent  = bold . fg "#f44"
-       , ppExtras  = [gets (Just . whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset)]
+       , ppExtras  = [Just <$> (gets numberOfWindows)]
        }
 
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
@@ -78,7 +79,8 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          (ajustableTall (1/2) 1) ||| TwoPane (1/8) (1/2) ||| Full
+          limit2 $
+          (ajustableTall (1/2) 1) ||| Full
 
 mkeys =
   [
@@ -89,6 +91,7 @@ mkeys =
   , ( "M-x", commandMenu )
   , ( "M-;", workspaceMenu "M-;" )
   , ( "M-q", sysMenu "M-q" )
+  , ( "M-/", toggleLimit2 )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
