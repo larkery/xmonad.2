@@ -28,7 +28,8 @@ data MenuConfig a b = MenuConfig
     _location :: Rectangle ->
                  (Dimension, Dimension) ->
                  Maybe (Position, Position) ->
-                 (Position, Position)
+                 (Position, Position),
+    _width :: Int
   }
 
 data ExitState = Select | Cancel | Continue deriving Eq
@@ -52,7 +53,8 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
                                  ("M1-i", completeThis)
                                ],
                      _rowLimit = 25,
-                     _location = middleOfScreen
+                     _location = middleOfScreen,
+                     _width = 400
                    }
 
 middleOfScreen :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
@@ -177,7 +179,7 @@ render = do
               _gc = gc,        _xfont = font,
               _choices = allChoices,
               _action = actions,
-              _config = (MenuConfig {_foreground = fgColor, _background = bgColor, _location = loc, _rowLimit = rowLimit }),
+              _config = (MenuConfig {_foreground = fgColor, _background = bgColor, _location = loc, _rowLimit = rowLimit, _width = width'}),
               _input = input,
               _rect = screenRectangle,
               _lastCoords = lastCoords
@@ -200,7 +202,7 @@ render = do
   let inputHeight = (fst inputHeights + snd inputHeights)
       actionsHeight = (fst actionsHeights + snd actionsHeights)
       height = 2 + sum heights + max inputHeight actionsHeight
-      width = 400
+      width = fi width'
       topRow = 1 + max inputHeight actionsHeight
 
   pixmap <- io $ createPixmap disp win (fi width) (fi height) (defaultDepthOfScreen (defaultScreenOfDisplay disp))

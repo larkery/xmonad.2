@@ -45,7 +45,7 @@ minT = "_"
 
 windowMenu  k = do
   let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }
-  window <- menu (addDown def) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
+  window <- menu (addDown def {_width = 500}) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
     where getWindows s = do
             ws <- allWindows
