@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types #-}
 
-module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, sysMenu, passMenu) where
+module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, sysMenu, passMenu, minT) where
 
 import XMonad
 import XMonad.Actions.Menu hiding (_action)
@@ -40,7 +40,7 @@ data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 instance Show NTWindow where
   show (NTWindow {name = n, tag = t}) = "["++t++"] "++n
 
-minT = "zzz"
+minT = "_"
 
 windowMenu  k = do
   let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }

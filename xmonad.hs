@@ -30,6 +30,12 @@ import qualified XMonad.StackSet as W
 
 main = xmonad mconfig
 
+getSortByTag' = ((.) minTLast) <$> getSortByTag
+  where minTLast [] = []
+        minTLast (x:xs)
+          | (W.tag x) == minT = xs ++ [x]
+          | otherwise = x:(minTLast xs)
+
 addLog c = c
   {
     logHook = (logHook c) >> (dynamicLogString pp >>= xmonadPropLog)
@@ -48,7 +54,7 @@ addLog c = c
        , ppHidden  = id
        , ppUrgent  = bold . fg "#f44"
        , ppExtras  = [Just <$> (gets numberOfWindows)]
-       , ppSort = getSortByTag
+       , ppSort = getSortByTag'
        }
 
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
@@ -116,8 +122,8 @@ mkeys =
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
-  , ( "M-C-n", findWorkspace getSortByTag Next interestingWS 1 >>= (windows . W.greedyView))
-  , ( "M-C-p", findWorkspace getSortByTag Prev interestingWS 1 >>= (windows . W.greedyView))
+  , ( "M-C-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
+  , ( "M-C-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
@@ -127,7 +133,6 @@ mkeys =
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
   where view n = withNthNEWorkspace W.greedyView (n - 1)
         shiftTo n = withNthNEWorkspace W.shift (n - 1)
-        minT = "zzz"
         interestingWS = WSIs $ do hs <- gets (map W.tag . W.hidden . windowset)
                                   return (\w -> isJust (W.stack w) && W.tag w `elem` (hs \\ [minT]))
         sendT = do addHiddenWorkspace minT
@@ -145,7 +150,7 @@ withNthNEWorkspace job wnum = do ws <- nonEmptyNames
 
 
 nonEmptyNames :: X [WorkspaceId]
-nonEmptyNames = do sort <- getSortByTag
+nonEmptyNames = do sort <- getSortByTag'
                    ws <- gets windowset
                    let spaces = (map W.workspace ((W.current ws):(W.visible ws))) ++
                                 (filter (isJust . W.stack) $ W.hidden ws)
