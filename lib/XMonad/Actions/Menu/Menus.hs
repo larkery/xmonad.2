@@ -16,7 +16,85 @@ import XMonad.Util.Run (safeSpawn, runProcessWithInput)
 import System.Directory (getHomeDirectory)
 import System.FilePath (takeExtension, dropExtension, combine)
 import XMonad.Hooks.History
-import XMonad.Hooks.WorkspaceHistoryinHistory) allTags)
+import XMonad.Hooks.WorkspaceHistory
+import XMonad.Hooks.NotifyUrgencyHook (setBorder)
+
+import qualified XMonad.StackSet as W
+
+data Choice a = C { _value :: a, _choiceLabel :: String, _actions :: [Action a] }
+data Action a = A { _actionLabel :: String, _action :: a -> X () }
+
+instance Show (Choice a) where
+  show (C {_choiceLabel = l}) = l
+
+instance Show (Action a) where
+  show (A {_actionLabel = l}) = l
+
+instance Options (Choice a) (Action a) where
+  options (C {_actions = as}) = as
+
+matches s = isInfixOf s . (map toLower)
+starts s = (== s) . (map toLower) . (take (length s))
+
+data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
+
+instance Show NTWindow where
+  show (NTWindow {name = n, tag = t}) = "["++t++"] "++n
+
+minT = "_"
+
+windowMenu  k = do
+  let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }
+  window <- menu (addDown def) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
+  whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
+    where getWindows s = do
+            ws <- allWindows
+            return $ filter (matches s . _choiceLabel) $ map wrap ws
+
+          toNTWindow :: (String, Window) -> X NTWindow
+          toNTWindow (t, w) = do n <- getName w
+                                 return $ NTWindow w (show n) t
+
+          allWindows :: X [NTWindow]
+          allWindows = (gets ((concatMap tagWindows) . W.workspaces . windowset)) >>= (mapM toNTWindow)
+
+          tagWindows :: W.Workspace i l a -> [(i, a)]
+          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map ((,) t) $ W.integrate' st
+
+          _focus :: Action NTWindow
+          _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (window nw)}
+          _bring = A {_actionLabel = "bring", _action = windows . bringWindow . window }
+          _master = A {_actionLabel = "mastr", _action = windows . (\w -> W.swapMaster .
+                                                                     (W.focusWindow w) .
+                                                                     (bringWindow w)) . window }
+
+          wrap :: NTWindow -> Choice NTWindow
+          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = if tag nw == minT then [_bring, _master] else [_focus, _bring, _master] }
+
+commandMenu = do
+  allCommands <- io $ getCommands
+  command <- menu def (findCommands allCommands)
+  whenJust command $ \(C{_value = c}, A {_action = a}) -> a c
+  where findCommands cs s = let ms = filter (matches s) cs in
+                              return $
+                              map wrap $
+                              if null ms then [s] else ms
+        run :: Action String
+        run = A { _actionLabel = "run", _action = \c -> spawn c }
+        term = A { _actionLabel = "term", _action = \c -> safeSpawn "urxvt" ["-e", c]  }
+        wrap :: String -> Choice String
+        wrap c = C { _value = c, _choiceLabel = c, _actions=[run, term] }
+
+workspaceMenu key = do
+  ws <- gets windowset
+
+  let addDown c = c { _keymap = (key, down >> holdKey):(_keymap c) }
+      current = W.tag $ W.workspace $ W.current ws
+      visible = map (W.tag . W.workspace) $ W.visible ws
+      (hiddenW, hiddenEmptyW) = partition (isJust . W.stack) $ W.hidden ws
+      (hidden, hiddenEmpty) = (map W.tag hiddenW, map W.tag hiddenEmptyW)
+
+      tags = current:(visible ++ hidden ++ hiddenEmpty)
 
   command <- menu (addDown def) (findTag tags)
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
