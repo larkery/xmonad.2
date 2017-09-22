@@ -80,7 +80,8 @@ data MenuState a b = MenuState
     _choices :: Zipper a,
     _keys :: !(M.Map (KeyMask, KeySym) (Menu a b ())),
     _rect :: Rectangle,
-    _lastCoords :: Maybe (Position, Position)
+    _lastCoords :: Maybe (Position, Position),
+    _holdingKey :: Bool
   }
 
 data Input = Input String String deriving Eq
@@ -123,7 +124,8 @@ menu c g = do
           _choices = fromIndex input 0,
           _keys = M.fromList $ mapMaybe (\(k, a) -> fmap (flip (,) a) (readKey mod k)) (_keymap c),
           _rect = rect,
-          _lastCoords = Nothing
+          _lastCoords = Nothing,
+          _holdingKey = False
         }
 
   out <- evalStateT runLoop (state :: MenuState a b)
@@ -255,13 +257,16 @@ render = do
 
 handleKeys :: (Show a, Show b, Options a b) => Menu a b ()
 handleKeys = do
-  (disp, keymap) <- gets (_display &&& _keys)
+  (disp, (keymap, holding)) <- gets (_display &&& _keys &&& _holdingKey)
   (keym, ev) <- lift $ nextKeyEvent disp
   XConf { XMonad.config = XConfig {modMask = mod} } <- lift ask
 
   case keym of
     Expose -> (lift $ broadcastMessage ev) >> render
-    Press mask sym string -> keyAction mod keymap (mask, sym, string) >> render
+    Press mask sym string -> unHoldKey >> keyAction mod keymap (mask, sym, string) >> render
+    Release ks -> if ks == xK_Super_L && holding
+                  then select
+                  else nop
     _ -> return ()
 
   gets ((== Continue) . _done) >>= flip when handleKeys
@@ -281,6 +286,12 @@ handleKeys = do
 
 -------- Menu actions for binding.
 --------------------------------------------------------------------------------
+
+holdKey :: Menu a b ()
+holdKey = modify $ \s -> s { _holdingKey = True }
+
+unHoldKey :: Menu a b ()
+unHoldKey = modify $ \s -> s { _holdingKey = False }
 
 fixAction :: (Show b, Options a b) => MenuState a b -> MenuState a b
 fixAction s@(MenuState {_choices = Nothing}) = s {_action = Nothing}

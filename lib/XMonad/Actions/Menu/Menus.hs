@@ -43,10 +43,9 @@ instance Show NTWindow where
 minT = "zzz"
 
 windowMenu  k = do
-  let addDown c = c { _keymap = (k, down):(_keymap c) }
+  let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }
   window <- menu (addDown def) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
-  resetBorders
     where getWindows s = do
             ws <- allWindows
             return $ filter (matches s . _choiceLabel) $ map wrap ws
@@ -57,13 +56,6 @@ windowMenu  k = do
 
           allWindows :: X [NTWindow]
           allWindows = (gets ((concatMap tagWindows) . W.workspaces . windowset)) >>= (mapM toNTWindow)
-
-          resetBorders = do
-            XConf { config = XConfig { focusedBorderColor = focused, normalBorderColor = normal } } <- ask
-            ws <- (gets (concatMap (W.integrate' . W.stack) . W.workspaces . windowset))
-            f <- gets (W.peek . windowset)
-            mapM_ (setBorder normal) ws
-            whenJust f $ setBorder focused
 
           tagWindows :: W.Workspace i l a -> [(i, a)]
           tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map ((,) t) $ W.integrate' st
@@ -95,7 +87,7 @@ commandMenu = do
 workspaceMenu key = do
   ws <- gets windowset
 
-  let addDown c = c { _keymap = (key, down):(_keymap c) }
+  let addDown c = c { _keymap = (key, down >> holdKey):(_keymap c) }
       current = W.tag $ W.workspace $ W.current ws
       visible = map (W.tag . W.workspace) $ W.visible ws
       (hiddenW, hiddenEmptyW) = partition (isJust . W.stack) $ W.hidden ws
