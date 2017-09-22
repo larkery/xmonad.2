@@ -23,6 +23,8 @@ import Control.Monad ( join )
 import XMonad.Actions.DynamicWorkspaces
 import qualified XMonad.Layout.Fullscreen as FS
 import XMonad.Actions.Warp (warpToWindow)
+import XMonad.Hooks.History
+import XMonad.Hooks.WorkspaceHistory
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -35,6 +37,8 @@ getSortByTag' = ((.) minTLast) <$> getSortByTag
         minTLast (x:xs)
           | (W.tag x) == minT = xs ++ [x]
           | otherwise = x:(minTLast xs)
+
+addHistory c = c {logHook = (logHook c) >> historyHook >> workspaceHistoryHook }
 
 addLog c = c
   {
@@ -69,6 +73,7 @@ mconfig =
   specialWindows $
   notifyUrgent $
   addLog $
+  addHistory $
   ewmh $ docks $
   (def
     { terminal    = "urxvt"
