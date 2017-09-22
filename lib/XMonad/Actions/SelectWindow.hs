@@ -14,25 +14,26 @@ import XMonad
 import qualified XMonad.StackSet as W
 import Control.Arrow ((&&&))
 
-selectWindow :: X (Maybe Window)
-selectWindow = withDisplay $ \dpy -> do
-  allWindows <- gets (concatMap (W.integrate' . W.stack . W.workspace) . (uncurry (:)) . (W.current &&& W.visible) . windowset)
-  atts <- io $ mapM (getWindowAttributes dpy) allWindows
+selectWindow = selectWindowKeys ["qwertyuiop", "asdfghjkl;"]
+
+selectWindowKeys :: [String] -> X (Maybe Window)
+selectWindowKeys keyss = withDisplay $ \dpy -> do
+  allWindows <- gets (map (W.integrate' . W.stack . W.workspace) . (sortOn ((rect_x &&& rect_y) . screenRect . W.screenDetail)) . (uncurry (:)) . (W.current &&& W.visible) . windowset)
+  atts <- io $ mapM (mapM (getWindowAttributes dpy)) allWindows
 
   let windowCenter (win, (WindowAttributes {wa_x = x, wa_y = y, wa_height = h, wa_width = w})) =
         (win, (x + (w`div`2), y + (h`div`2)))
 
       windowVisible (_, (WindowAttributes {wa_map_state = ms})) = ms == waIsViewable
 
-      wins = map windowCenter $ filter windowVisible $ zip allWindows atts
+      wins = map (map windowCenter) $ map (filter windowVisible) $ map (uncurry zip) $ zip allWindows atts
 
   -- create a lot of little windows to select with
 
   font <- initXMF "xft:Sans-24"
 
-  let keys = "qwerasdfzxcv"
-      winPos = sortOn snd wins
-      winKeys = zip keys winPos
+  let winPos = map (sortOn snd) wins -- these are sorted within ws but not without!
+      winKeys = concatMap (uncurry zip) $ zip keyss winPos
       pop (k, (w, (x, y))) = do
         win <- createNewWindow (Rectangle (fromIntegral x-25) (fromIntegral y-25) 50 50) Nothing "black" False
         showWindow win
