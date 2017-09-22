@@ -246,9 +246,9 @@ render = do
   modify $ \s->s{_lastCoords = Just (wx, wy)}
 
   io $ do color fgColor >>= setForeground disp gc
+          drawLine disp pixmap gc (fi width - 1) 0 (fi width - 1) (fi height)
           when (hasActions || hasInput) $
-            drawLine disp pixmap gc (fi width - 1) 0 (fi width - 1) (fi height)
-          drawLine disp pixmap gc 0 topRow (fi width) topRow
+            drawLine disp pixmap gc 0 topRow (fi width) topRow
 
           moveResizeWindow disp win wx wy width (fi height)
 
