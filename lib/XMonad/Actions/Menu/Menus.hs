@@ -56,10 +56,14 @@ windowMenu  k = do
                                  return $ NTWindow w (show n) t
 
           allWindows :: X [NTWindow]
-          allWindows = (gets ((concatMap tagWindows) . W.workspaces . windowset)) >>= (mapM toNTWindow)
+          allWindows = do
+            windowTags <- gets ((concatMap tagWindows) . W.workspaces . windowset)
+            history <- orderedWindows
+            let historyTags = map (fromMaybe "?" . (flip lookup windowTags)) history
+            mapM toNTWindow $ zip historyTags history
 
-          tagWindows :: W.Workspace i l a -> [(i, a)]
-          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map ((,) t) $ W.integrate' st
+          tagWindows :: W.Workspace i l a -> [(a, i)]
+          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map (flip (,) t) $ W.integrate' st
 
           _focus :: Action NTWindow
           _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (window nw)}
@@ -87,14 +91,18 @@ commandMenu = do
 
 workspaceMenu key = do
   ws <- gets windowset
+  history <- workspaceHistory
 
   let addDown c = c { _keymap = (key, down >> holdKey):(_keymap c) }
-      current = W.tag $ W.workspace $ W.current ws
-      visible = map (W.tag . W.workspace) $ W.visible ws
-      (hiddenW, hiddenEmptyW) = partition (isJust . W.stack) $ W.hidden ws
-      (hidden, hiddenEmpty) = (map W.tag hiddenW, map W.tag hiddenEmptyW)
 
-      tags = current:(visible ++ hidden ++ hiddenEmpty)
+      existing :: [String]
+      existing = map W.tag $ W.workspaces ws
+      exists :: String -> Bool
+      exists = flip elem existing
+      ahistorical :: String -> Bool
+      ahistorical = not . (flip elem history)
+
+      tags = (filter exists history) ++ (filter ahistorical existing)
 
   command <- menu (addDown def) (findTag tags)
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
