@@ -41,7 +41,7 @@ data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 instance Show NTWindow where
   show (NTWindow {name = n, tag = t}) = "["++t++"] "++n
 
-minT = "_"
+minT = "&"
 
 windowMenu  k = do
   let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }

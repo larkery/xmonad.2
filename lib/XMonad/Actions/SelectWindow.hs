@@ -32,12 +32,15 @@ selectWindowKeys keyss = withDisplay $ \dpy -> do
 
   font <- initXMF "xft:Sans-24"
 
+  let bg = "black"
+      fg = "#9f9"
+
   let winPos = map (sortOn snd) wins -- these are sorted within ws but not without!
       winKeys = concatMap (uncurry zip) $ zip keyss winPos
       pop (k, (w, (x, y))) = do
-        win <- createNewWindow (Rectangle (fromIntegral x-25) (fromIntegral y-25) 50 50) Nothing "black" False
+        win <- createNewWindow (Rectangle (fromIntegral x-25) (fromIntegral y-25) 50 50) Nothing bg False
         showWindow win
-        paintAndWrite win font 50 50 2 "black" "white" "white" "black" [AlignCenter] [[k]]
+        paintAndWrite win font 50 50 2 bg fg fg bg [AlignCenter] [[k]]
         return $ (win, k)
 
       readKey = do
