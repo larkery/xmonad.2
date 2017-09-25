@@ -298,12 +298,13 @@ unHoldKey = modify $ \s -> s { _holdingKey = False }
 fixAction :: (Show b, Options a b) => MenuState a b -> MenuState a b
 fixAction s@(MenuState {_choices = Nothing}) = s {_action = Nothing}
 fixAction s@(MenuState {_action = acs, _choices = Just (W.Stack f _ _)}) =
-  let mName = show <$> (getFocusZ acs) in
-  s { _action = fromTags $
-                flip map (options f) $
-                \a -> if Just (show a) == mName then
-                  Right a else Left a }
-
+  let (names, ix) = first (map show) $ toIndex acs
+      newOnes = options f
+      newNames = map show newOnes
+      newAcs = if names == newNames
+               then fromIndex newOnes (fromMaybe 0 ix)
+               else fromIndex newOnes 0
+  in s { _action = newAcs }
 
 nop :: Menu a b ()
 nop = return ()
