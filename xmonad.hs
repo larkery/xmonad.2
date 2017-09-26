@@ -111,7 +111,7 @@ mkeys =
   , ( "M-;", workspaceMenu "M-;" )
   , ( "M-q", sysMenu "M-q" )
   , ( "M-/", toggleLimit2 )
-  , ( "M-t", toggleFlip )
+  , ( "M-r", toggleFlip )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
