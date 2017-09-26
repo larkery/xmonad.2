@@ -25,6 +25,7 @@ import qualified XMonad.Layout.Fullscreen as FS
 import XMonad.Actions.Warp (warpToWindow)
 import XMonad.Hooks.History
 import XMonad.Hooks.WorkspaceHistory
+import XMonad.Layout.Flip
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -97,6 +98,7 @@ _layout = trackFloating $
           avoidStruts $
           smartBorders $
           limit2 $
+          flipLayout $
           (ajustableTall (1/2) 1) ||| Full
 
 mkeys =
@@ -109,6 +111,7 @@ mkeys =
   , ( "M-;", workspaceMenu "M-;" )
   , ( "M-q", sysMenu "M-q" )
   , ( "M-/", toggleLimit2 )
+  , ( "M-t", toggleFlip )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
