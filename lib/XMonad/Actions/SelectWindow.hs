@@ -14,7 +14,7 @@ import XMonad
 import qualified XMonad.StackSet as W
 import Control.Arrow ((&&&))
 
-selectWindow = selectWindowKeys ["qwertyuiop", "asdfghjkl;"]
+selectWindow = selectWindowKeys ["asdfgzxcvb", "hjklnm,."]
 
 selectWindowKeys :: [String] -> X (Maybe Window)
 selectWindowKeys keyss = withDisplay $ \dpy -> do
