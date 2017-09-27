@@ -9,7 +9,7 @@ import XMonad.Actions.Menu.Menus
 import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
 import Data.Maybe
-import Data.List ( (\\) )
+import Data.List ( (\\), intersect, delete )
 import XMonad.Util.WorkspaceCompare ( getSortByTag )
 import XMonad.Hooks.NotifyUrgencyHook
 import XMonad.Actions.RotSlaves
@@ -109,9 +109,9 @@ mkeys =
     ( "M-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
-  , ( "M-'", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> (warpToWindow (1/8) (1/8))  )
+  , ( "M-;", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> (warpToWindow (1/8) (1/8))  )
   , ( "M-x", commandMenu )
-  , ( "M-;", workspaceMenu "M-;" )
+  , ( "M-o", workspaceMenu "M-o" )
   , ( "M-q", sysMenu "M-q" )
   , ( "M-/", toggleLimit2 )
   , ( "M-r", toggleFlip )
@@ -126,6 +126,18 @@ mkeys =
   , ( "M-n", windows $ W.focusDown )
   , ( "M-M1-n", rotSlavesDown )
   , ( "M-M1-p", rotSlavesUp )
+  , ( "M-m", do st <- gets (W.stack . W.workspace . W.current . windowset)
+                lwh <- orderedWindows
+                let here = intersect lwh $ W.integrate' st
+                    after w = listToMaybe $ delete w here
+                windows $ case st of
+                            (Just (W.Stack f [] _)) ->
+                              case after f of
+                                (Just w2) -> W.focusWindow w2
+                                _ -> W.focusDown
+                            (Just _) -> W.focusMaster
+                            _ -> id
+    )
 
   , ( "M-y", sendT )
   , ( "M-u", bringT )
