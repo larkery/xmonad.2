@@ -109,7 +109,7 @@ mkeys =
     ( "M-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
-  , ( "M-<Space>", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> (warpToWindow (1/8) (1/8))  )
+  , ( "M-<Space>", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> (warpToWindow (1/2) (1/2))  )
   , ( "M-;", sendMessage NextLayout )
   , ( "M-x", commandMenu )
   , ( "M-o", workspaceMenu "M-o" )
