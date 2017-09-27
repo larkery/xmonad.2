@@ -26,6 +26,8 @@ import XMonad.Actions.Warp (warpToWindow)
 import XMonad.Hooks.History
 import XMonad.Hooks.WorkspaceHistory
 import XMonad.Layout.Flip
+import Graphics.X11.Xrandr (xrrSelectInput)
+import Data.Monoid
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -70,6 +72,7 @@ specialWindows c = c { manageHook = (manageHook c) <+> rules}
                            , className =? "XClock" --> doFloat ]
 
 mconfig =
+  randr $
   FS.fullscreenSupport $
   specialWindows $
   notifyUrgent $
@@ -112,6 +115,7 @@ mkeys =
   , ( "M-q", sysMenu "M-q" )
   , ( "M-/", toggleLimit2 )
   , ( "M-r", toggleFlip )
+  , ( "M-z", updateScreens )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
@@ -166,3 +170,20 @@ nonEmptyNames = do sort <- getSortByTag'
 
 isFloating :: Window -> X Bool
 isFloating w = gets ((M.member w) . W.floating . windowset)
+
+
+updateScreens :: X ()
+updateScreens = spawn "autorandr -c --default horizontal"
+
+selectRandrEvents :: X ()
+selectRandrEvents = do
+  dpy <- asks display
+  root <- asks theRoot
+  io $ xrrSelectInput dpy root rrScreenChangeNotifyMask
+
+onOutputChanged :: X () -> Event -> X All
+onOutputChanged a (RRScreenChangeNotifyEvent {}) = a >> return (All True)
+onOutputChanged _ _ = return (All True)
+
+randr c = c { startupHook = startupHook c >> selectRandrEvents,
+              handleEventHook = handleEventHook c <+> onOutputChanged updateScreens }
