@@ -83,7 +83,7 @@ mconfig =
     , focusedBorderColor = "white"
     , normalBorderColor = "#555"
     , layoutHook = _layout
-    , workspaces = ["main", "other"]
+    , workspaces = ["main", "mail"]
     } `additionalKeysP` mkeys
     `additionalMouseBindings`
     [((mod4Mask, 1), \w -> do float <- isFloating w
