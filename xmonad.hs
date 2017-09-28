@@ -68,6 +68,7 @@ addLog c = c
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
   where rules = composeAll [ isDialog --> doFloat
                            , transience'
+                           , className =? "pinentry" --> doFloat
                            , className =? "Xmessage" --> doFloat
                            , className =? "Yad" --> doFloat
                            , className =? "XClock" --> doFloat ]
