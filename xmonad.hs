@@ -8,6 +8,7 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
 import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
+import XMonad.Actions.DwmPromote
 import Data.Maybe
 import Data.List ( (\\), intersect, delete )
 import XMonad.Util.WorkspaceCompare ( getSortByTag )
@@ -109,7 +110,7 @@ mkeys =
     ( "M-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
-  , ( "M-<Space>", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> (warpToWindow (1/2) (1/2))  )
+  , ( "M-<Space>", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
   , ( "M-;", sendMessage NextLayout )
   , ( "M-x", commandMenu )
   , ( "M-o", workspaceMenu "M-o" )
@@ -117,6 +118,7 @@ mkeys =
   , ( "M-/", toggleLimit2 )
   , ( "M-r", toggleFlip )
   , ( "M-z", updateScreens )
+  , ( "M-<Return>", withMaster (const $ windows W.shiftMaster) (windows . W.focusWindow) >> warp )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
   , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
@@ -124,21 +126,11 @@ mkeys =
   , ( "<XF86MonBrightnessUp>", spawn "xbacklight -inc 10" )
   , ( "<XF86MonBrightnessDown>", spawn "xbacklight -dec 10" )
 
+  , ( "M-d", nextScreen >> warp )
   , ( "M-n", windows $ W.focusDown )
   , ( "M-M1-n", rotSlavesDown )
   , ( "M-M1-p", rotSlavesUp )
-  , ( "M-m", do st <- gets (W.stack . W.workspace . W.current . windowset)
-                lwh <- orderedWindows
-                let here = intersect lwh $ W.integrate' st
-                    after w = listToMaybe $ delete w here
-                windows $ case st of
-                            (Just (W.Stack f [] _)) ->
-                              case after f of
-                                (Just w2) -> W.focusWindow w2
-                                _ -> W.focusDown
-                            (Just _) -> W.focusMaster
-                            _ -> id
-    )
+  , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
   , ( "M-y", sendT )
   , ( "M-u", bringT )
@@ -156,8 +148,23 @@ mkeys =
   , ("M--", growTileVertically (-1/8))
   ] ++
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
-  where view n = withNthNEWorkspace W.greedyView (n - 1)
+  where withMaster a b = do
+          st <- gets (W.stack . W.workspace . W.current . windowset)
+          lwh <- orderedWindows
+          let here = intersect lwh $ W.integrate' st
+              after w = listToMaybe $ delete w here
+          case st of
+            (Just (W.Stack f [] d)) ->
+              case (after f, d) of
+                (Just w2, _) -> b w2
+                (_, x:xs) -> b x
+                _ -> b f
+            (Just (W.Stack _ xs _)) -> a (last xs)
+            _ -> return ()
+
+        view n = withNthNEWorkspace W.greedyView (n - 1)
         shiftTo n = withNthNEWorkspace W.shift (n - 1)
+        warp = warpToWindow (1/2) (1/2)
         interestingWS = WSIs $ do hs <- gets (map W.tag . W.hidden . windowset)
                                   return (\w -> isJust (W.stack w) && W.tag w `elem` (hs \\ [minT]))
         sendT = do addHiddenWorkspace minT

@@ -60,6 +60,7 @@ tray-padding = 2
 [module/title]
 type=internal/xwindow
 label-font=3
+label-lmaxlen = 50
 
 [module/wslog]
 type=custom/script
@@ -78,11 +79,11 @@ label = %percentage%%
 type = internal/date
 interval = 1
 
-date = " %b %d"
-date-alt = " %Y-%m-%d"
+date = " %a %b %d"
+date-alt = " W%W"
 
-time = "%H:%M:%S"
-time-alt = "%H:%M:%S"
+time = "%H:%M"
+time-alt = "%H:%M"
 
 format-prefix = ""
 format-prefix-foreground = ${colors.foreground-alt}
