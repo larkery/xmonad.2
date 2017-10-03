@@ -68,7 +68,7 @@ addLog c = c
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
   where rules = composeAll [ isDialog --> doFloat
                            , transience'
-                           , className =? "pinentry" --> doFloat
+                           , className =? "Pinentry" --> doFloat
                            , className =? "Xmessage" --> doFloat
                            , className =? "Yad" --> doFloat
                            , className =? "XClock" --> doFloat ]
@@ -206,5 +206,5 @@ onOutputChanged :: X () -> Event -> X All
 onOutputChanged a (RRScreenChangeNotifyEvent {}) = a >> return (All True)
 onOutputChanged _ _ = return (All True)
 
-randr c = c { startupHook = startupHook c >> selectRandrEvents,
+randr c = c { startupHook = startupHook c >> selectRandrEvents >> updateScreens,
               handleEventHook = handleEventHook c <+> onOutputChanged updateScreens }
