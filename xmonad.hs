@@ -108,7 +108,8 @@ _layout = trackFloating $
 
 mkeys =
   [
-    ( "M-w", spawn "chromium" )
+    ( "M-w", spawn "firefox" )
+  , ( "M-S-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu "M-j" )
   , ( "M-<Space>", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
