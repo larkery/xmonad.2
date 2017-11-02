@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types #-}
 
-module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, sysMenu, passMenu, minT) where
+module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, actionMenu, passMenu, minT) where
 
 import XMonad
 import XMonad.Actions.Menu hiding (_action)
@@ -118,20 +118,15 @@ workspaceMenu key = do
         shiftWindowToNew ws w = do addHiddenWorkspace ws
                                    windows $ W.shiftWin ws w
 
-sysMenu k = do
+actionMenu :: String -> [(String, X ())] -> X ()
+actionMenu k commands' = do
   r <- menu (addDown def) gen :: X (Maybe (Choice (X ()), Action (X ())))
   whenJust r $ \(x, a) -> (_action a) (_value x)
   where gen :: String -> X [Choice (X ())]
         gen s = return $ filter ((starts s) . show) commands
         addDown c = c { _keymap = (k, down):(_keymap c) }
         commands :: [Choice (X ())]
-        commands = [com "reload" $ spawn reloadCommand,
-                    com "hibernate" $ spawn "systemctl hibernate",
-                    com "suspend" $ spawn "systemctl suspend",
-                    com "wifi" $ spawn "wpa_gui",
-                    com "pass" passMenu
-                   ]
-        reloadCommand = "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
+        commands = map (uncurry com) commands'
         _run :: Action (X ())
         _run = A { _actionLabel = "", _action = id }
         com :: String -> X () -> Choice (X ())

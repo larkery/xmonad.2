@@ -106,6 +106,16 @@ _layout = trackFloating $
           flipLayout $
           (ajustableTall (1/2) 1) ||| Full
 
+sysMenu k = actionMenu k commands where
+  commands = [("reload", spawn reloadCommand),
+               ("hibernate", spawn "systemctl hibernate"),
+               ("suspend", spawn "systemctl suspend"),
+               ("wifi", spawn "wpa_gui"),
+               ("pass", passMenu),
+               ("screens", updateScreens)
+             ]
+  reloadCommand = "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
+
 mkeys =
   [
     ( "M-w", spawn "firefox" )
@@ -119,7 +129,8 @@ mkeys =
   , ( "M-q", sysMenu "M-q" )
   , ( "M-/", toggleLimit2 )
   , ( "M-r", toggleFlip )
-  , ( "M-z", updateScreens )
+  , ( "M-z", sendT )
+  , ( "M-y", bringT )
   , ( "M-<Return>", withMaster (const $ windows W.shiftMaster) (windows . W.focusWindow) >> warp )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
@@ -133,9 +144,6 @@ mkeys =
   , ( "M-M1-n", rotSlavesDown )
   , ( "M-M1-p", rotSlavesUp )
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
-
-  , ( "M-y", sendT )
-  , ( "M-u", bringT )
 
   , ( "M-p", windows $ W.focusUp )
   , ( "M-S-n", windows $ W.swapDown )
