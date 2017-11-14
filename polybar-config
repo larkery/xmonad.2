@@ -50,9 +50,9 @@ font-0 = Sans:pixelsize=9;0
 font-1 = FontAwesome:size=6;-1
 font-2 = Sans:size=9:weight=bold;0
 
-modules-left = wslog
-modules-center = title
-modules-right = cpu battery volume date
+modules-left = wslog title
+modules-center =
+modules-right = wlan battery volume date
 
 tray-position = right
 tray-padding = 2
@@ -66,14 +66,6 @@ label-lmaxlen = 50
 type=custom/script
 tail=true
 exec=~/.xmonad/log
-
-[module/cpu]
-type = internal/cpu
-interval = 2
-format-prefix = " "
-format-prefix-foreground = ${colors.foreground-alt}
-format-underline = ${colors.red}
-label = %percentage%%
 
 [module/date]
 type = internal/date
@@ -131,5 +123,22 @@ type=internal/volume
 format-volume = <label-volume>
 label-muted = "mute"
 format-volume-underline = ${colors.orange}
+
+[module/wlan]
+type = internal/network
+interface = wlp2s0
+interval = 3.0
+format-connected = <ramp-signal> <label-connected>
+format-connected-underline = #9f78e1
+format-disconnected-underline = ${self.format-connected-underline}
+label-connected = %essid%
+label-disconnected = %ifname% disconnected
+label-disconnected-foreground = ${colors.foreground-alt}
+ramp-signal-0 = 0
+ramp-signal-1 = 1
+ramp-signal-2 = 2
+ramp-signal-3 = 3
+ramp-signal-4 = 4
+ramp-signal-foreground = ${colors.foreground-alt}
 
 ; vim:ft=dosini
