@@ -32,8 +32,8 @@ selectWindowKeys keyss = withDisplay $ \dpy -> do
 
   font <- initXMF "xft:Sans-24"
 
-  let bg = "black"
-      fg = "#9f9"
+  let fg = "#f6f6f6"
+      bg = "#2d71b8"
 
   let winPos = map (sortOn snd) wins -- these are sorted within ws but not without!
       winKeys = concatMap (uncurry zip) $ zip keyss winPos
