@@ -6,6 +6,7 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Layout.TrackFloating
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
+import XMonad.Actions.Menu (_foreground, _background)
 import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
 import XMonad.Actions.DwmPromote
@@ -36,13 +37,18 @@ import qualified XMonad.StackSet as W
 
 main = xmonad mconfig
 
+fg = "darkcyan"
+bg = "#f6f6f6"
+
+cl c = c { _foreground = fg, _background = bg }
+
 getSortByTag' = ((.) minTLast) <$> getSortByTag
   where minTLast [] = []
         minTLast (x:xs)
           | (W.tag x) == minT = xs ++ [x]
           | otherwise = x:(minTLast xs)
 
-addHistory c = c {logHook = (logHook c) >> historyHook >> workspaceHistoryHook }
+addHistory c = c { logHook = (logHook c) >> historyHook >> workspaceHistoryHook }
 
 addLog c = c
   {
@@ -84,9 +90,9 @@ mconfig =
   (def
     { terminal    = "urxvt"
     , modMask     = mod4Mask
-    , borderWidth = 1
-    , focusedBorderColor = "white"
-    , normalBorderColor = "#555"
+    , borderWidth = 2
+    , focusedBorderColor = fg
+    , normalBorderColor = bg
     , layoutHook = _layout
     , workspaces = ["main", "mail"]
     } `additionalKeysP` mkeys
@@ -106,12 +112,12 @@ _layout = trackFloating $
           flipLayout $
           (ajustableTall (1/2) 1) ||| Full
 
-sysMenu k = actionMenu k commands where
+sysMenu k = actionMenu (cl def) k commands where
   commands = [("reload", spawn reloadCommand),
                ("hibernate", spawn "systemctl hibernate"),
                ("suspend", spawn "systemctl suspend"),
                ("wifi", spawn "wpa_gui"),
-               ("pass", passMenu),
+               ("pass", passMenu (cl def)),
                ("screens", updateScreens)
              ]
   reloadCommand = "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
@@ -121,11 +127,11 @@ mkeys =
     ( "M-w", spawn "firefox" )
   , ( "M-S-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
-  , ( "M-j", windowMenu "M-j" )
-  , ( "M-<Space>", selectWindow >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
+  , ( "M-j", windowMenu (cl def) "M-j" )
+  , ( "M-<Space>", (selectWindow bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
   , ( "M-;", sendMessage NextLayout )
-  , ( "M-x", commandMenu )
-  , ( "M-o", workspaceMenu "M-o" )
+  , ( "M-x", commandMenu (cl def) )
+  , ( "M-o", workspaceMenu (cl def) "M-o" )
   , ( "M-q", sysMenu "M-q" )
   , ( "M-/", toggleLimit2 )
   , ( "M-r", toggleFlip )

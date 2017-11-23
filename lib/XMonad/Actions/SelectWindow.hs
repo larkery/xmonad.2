@@ -16,8 +16,8 @@ import Control.Arrow ((&&&))
 
 selectWindow = selectWindowKeys ["asdfgzxcvb", "hjklnm,."]
 
-selectWindowKeys :: [String] -> X (Maybe Window)
-selectWindowKeys keyss = withDisplay $ \dpy -> do
+selectWindowKeys :: [String] -> String -> String -> X (Maybe Window)
+selectWindowKeys keyss fg bg = withDisplay $ \dpy -> do
   allWindows <- gets (map (W.integrate' . W.stack . W.workspace) . (sortOn ((rect_x &&& rect_y) . screenRect . W.screenDetail)) . (uncurry (:)) . (W.current &&& W.visible) . windowset)
   atts <- io $ mapM (mapM (getWindowAttributes dpy)) allWindows
 
@@ -31,9 +31,6 @@ selectWindowKeys keyss = withDisplay $ \dpy -> do
   -- create a lot of little windows to select with
 
   font <- initXMF "xft:Sans-24"
-
-  let fg = "#f6f6f6"
-      bg = "#2d71b8"
 
   let winPos = map (sortOn snd) wins -- these are sorted within ws but not without!
       winKeys = concatMap (uncurry zip) $ zip keyss winPos

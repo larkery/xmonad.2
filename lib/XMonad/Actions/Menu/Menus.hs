@@ -43,9 +43,9 @@ instance Show NTWindow where
 
 minT = "&"
 
-windowMenu  k = do
+windowMenu cfg k = do
   let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }
-  window <- menu (addDown def {_width = 500}) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
+  window <- menu (addDown cfg {_width = 500}) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
     where getWindows s = do
             ws <- allWindows
@@ -75,9 +75,9 @@ windowMenu  k = do
           wrap :: NTWindow -> Choice NTWindow
           wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = if tag nw == minT then [_bring, _master] else [_focus, _bring, _master] }
 
-commandMenu = do
+commandMenu cfg = do
   allCommands <- io $ getCommands
-  command <- menu def (findCommands allCommands)
+  command <- menu cfg (findCommands allCommands)
   whenJust command $ \(C{_value = c}, A {_action = a}) -> a c
   where findCommands cs s = let ms = filter (matches s) cs in
                               return $
@@ -89,7 +89,7 @@ commandMenu = do
         wrap :: String -> Choice String
         wrap c = C { _value = c, _choiceLabel = c, _actions=[run, term] }
 
-workspaceMenu key = do
+workspaceMenu cfg key = do
   ws <- gets windowset
   history <- workspaceHistory
 
@@ -104,7 +104,7 @@ workspaceMenu key = do
 
       tags = (filter exists history) ++ (filter ahistorical existing)
 
-  command <- menu (addDown def) (findTag tags)
+  command <- menu (addDown cfg) (findTag tags)
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
   where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
         new tags s = if s `elem` tags || s == "" then [] else
@@ -118,9 +118,8 @@ workspaceMenu key = do
         shiftWindowToNew ws w = do addHiddenWorkspace ws
                                    windows $ W.shiftWin ws w
 
-actionMenu :: String -> [(String, X ())] -> X ()
-actionMenu k commands' = do
-  r <- menu (addDown def) gen :: X (Maybe (Choice (X ()), Action (X ())))
+actionMenu cfg k commands' = do
+  r <- menu (addDown cfg) gen :: X (Maybe (Choice (X ()), Action (X ())))
   whenJust r $ \(x, a) -> (_action a) (_value x)
   where gen :: String -> X [Choice (X ())]
         gen s = return $ filter ((starts s) . show) commands
@@ -132,14 +131,14 @@ actionMenu k commands' = do
         com :: String -> X () -> Choice (X ())
         com l a = C { _value = a, _choiceLabel = l, _actions = [_run] }
 
-passMenu = do
+passMenu cfg = do
   h <- io $ getHomeDirectory
   passwordFiles <- io $ runProcessWithInput "find" [ combine h ".password-store"
                                                    ,  "-type" , "f"
                                                    , "-name", "*.gpg"
                                                    , "-printf", "%P\n"] []
 
-  ac <- menu def (gen (map (wrap . unsuffix ".gpg") $ lines passwordFiles))
+  ac <- menu cfg (gen (map (wrap . unsuffix ".gpg") $ lines passwordFiles))
   whenJust ac $ \(C {_value = p}, A{_action = a}) -> a p
   return ()
   where unsuffix :: String -> String -> String
