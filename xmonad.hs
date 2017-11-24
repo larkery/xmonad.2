@@ -130,6 +130,7 @@ mkeys =
   , ( "M-j", windowMenu (cl def) "M-j" )
   , ( "M-<Space>", (selectWindow bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
   , ( "M-;", sendMessage NextLayout )
+  , ( "M-b", sendMessage ToggleStruts )
   , ( "M-x", commandMenu (cl def) )
   , ( "M-o", workspaceMenu (cl def) "M-o" )
   , ( "M-q", sysMenu "M-q" )
