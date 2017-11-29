@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 import XMonad
 import XMonad.Layout.NoBorders
 import XMonad.Util.EZConfig
@@ -19,7 +20,6 @@ import XMonad.Layout.AdjustableTall
 import XMonad.Hooks.ManageHelpers
 import XMonad.Layout.FullscreenToggleStruts
 import XMonad.Actions.SelectWindow
-import XMonad.Layout.Limit2
 import XMonad.Actions.WindowBringer (bringWindow)
 import Control.Monad ( join )
 import XMonad.Actions.DynamicWorkspaces
@@ -30,6 +30,12 @@ import XMonad.Hooks.WorkspaceHistory
 import XMonad.Layout.Flip
 import Graphics.X11.Xrandr (xrrSelectInput)
 import Data.Monoid
+
+import XMonad.Layout.SubLayouts
+import XMonad.Layout.Tabbed
+import XMonad.Layout.LayoutModifier (LayoutModifier, ModifiedLayout (..))
+import XMonad.Layout.Simplest (Simplest (..))
+import XMonad.Layout.Decoration(Decoration, DefaultShrinker)
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -108,9 +114,20 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          limit2 $
-          flipLayout $
-          (ajustableTall (1/2) 1) ||| Full
+          (subTabbed' $ flipLayout $ ajustableTall (1/2) 1) ||| Full
+
+subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
+              l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
+subTabbed' x = addTabs shrinkText thm $ subLayout [] Simplest x
+  where thm = def { fontName = "xft:Sans-9"
+                  , decoHeight = 12
+                  , inactiveColor = "#666"
+                  , inactiveBorderColor = "#777"
+                  , inactiveTextColor = "#fff"
+                  , activeBorderColor = fg
+                  , activeColor = fg
+                  , activeTextColor = bg
+                  }
 
 sysMenu k = actionMenu (cl def) k commands where
   commands = [("reload", spawn reloadCommand),
@@ -134,7 +151,7 @@ mkeys =
   , ( "M-x", commandMenu (cl def) )
   , ( "M-o", workspaceMenu (cl def) "M-o" )
   , ( "M-q", sysMenu "M-q" )
-  , ( "M-/", toggleLimit2 )
+
   , ( "M-r", toggleFlip )
   , ( "M-z", sendT )
   , ( "M-y", bringT )
@@ -148,8 +165,10 @@ mkeys =
 
   , ( "M-d", nextScreen >> warp )
   , ( "M-n", windows $ W.focusDown )
-  , ( "M-M1-n", rotSlavesDown )
-  , ( "M-M1-p", rotSlavesUp )
+  , ( "M-M1-n", withFocused (sendMessage . mergeDir id ) )
+  , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
+  , ( "M-/", withFocused (sendMessage . UnMerge) )
+
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
   , ( "M-p", windows $ W.focusUp )
