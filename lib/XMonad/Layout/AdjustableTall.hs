@@ -18,7 +18,8 @@ data Edge = L | R | T | B deriving (Read, Show, Typeable, Eq)
 
 data AdjustableTileMessage =
   AdjustTile Int Edge Position |
-  ExpandTile Int Rational
+  ExpandTile Int Rational |
+  ResetTiles
   deriving (Read, Show, Typeable)
 
 instance Message AdjustableTileMessage
@@ -79,6 +80,11 @@ instance LayoutClass AdjustableTall a where
       snap r n = (fromIntegral (round $ n * (r :: Rational))) / r
 
       incmastern (IncMasterN d) = l { _capacity = max 0 (cap + d) }
+
+      adjust ResetTiles = l { _hsplit = (1/2)
+                           , _leftSplits = map (const 1) (_leftSplits l)
+                           , _rightSplits = map (const 1) (_leftSplits l)
+                           }
 
       adjust  (ExpandTile n r)
         | n < cap = l { _leftSplits = expand' n (_leftSplits l) }

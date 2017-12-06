@@ -168,6 +168,7 @@ mkeys =
   , ( "M-M1-n", withFocused (sendMessage . mergeDir id ) )
   , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
   , ( "M-/", withFocused (sendMessage . UnMerge) )
+  , ( "M-'", sendMessage ResetTiles)
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
