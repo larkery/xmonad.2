@@ -31,6 +31,7 @@ import XMonad.Layout.Flip
 import Graphics.X11.Xrandr (xrrSelectInput)
 import Data.Monoid
 
+import XMonad.Layout.Spacing
 import XMonad.Layout.SubLayouts
 import XMonad.Layout.Tabbed
 import XMonad.Layout.LayoutModifier (LayoutModifier, ModifiedLayout (..))
@@ -41,9 +42,13 @@ import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
 import qualified XMonad.StackSet as W
 
+import qualified Debug.Trace as D
+
 main = xmonad mconfig
 
-fg = "darkcyan"
+fg2 = "#00AAFF"
+fg =  "#006699"  --"#8b008b"
+
 bg = "#f6f6f6"
 
 cl c = c { _foreground = fg, _background = bg }
@@ -78,12 +83,22 @@ addLog c = c
        }
 
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
-  where rules = composeAll [ isDialog --> doFloat
+  where rules = composeAll [ isDialog --> doFloatSnap
                            , transience'
-                           , className =? "Pinentry" --> doFloat
-                           , className =? "Xmessage" --> doFloat
-                           , className =? "Yad" --> doFloat
-                           , className =? "XClock" --> doFloat ]
+                           , className =? "Pinentry" --> doFloatSnap
+                           , className =? "Xmessage" --> doFloatSnap
+                           , className =? "Yad" --> doFloatSnap
+                           , className =? "XClock" --> doFloatSnap ]
+        doFloatSnap = doFloatDep snap
+        snap (W.RationalRect x y w h) =
+          W.RationalRect x' y' w h
+          where
+            x' | x < 0 = 0
+               | x > 1 = (1 - w)
+               | otherwise = x
+            y' | y < 0 = 0
+               | y > 1 = (1 - h)
+               | otherwise = y
 
 mconfig =
   randr $
@@ -97,8 +112,8 @@ mconfig =
     { terminal    = "urxvt"
     , modMask     = mod4Mask
     , borderWidth = 2
-    , focusedBorderColor = fg
-    , normalBorderColor = bg
+    , focusedBorderColor = fg2
+    , normalBorderColor = "#ccc"
     , layoutHook = _layout
     , workspaces = ["main", "mail"]
     } `additionalKeysP` mkeys
@@ -114,18 +129,19 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
+          smartSpacingWithEdge 1 $
           (subTabbed' $ flipLayout $ ajustableTall (1/2) 1) ||| Full
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
 subTabbed' x = addTabs shrinkText thm $ subLayout [] Simplest x
   where thm = def { fontName = "xft:Sans-9"
-                  , decoHeight = 12
+                  , decoHeight = 16
                   , inactiveColor = "#666"
                   , inactiveBorderColor = "#777"
                   , inactiveTextColor = "#fff"
-                  , activeBorderColor = fg
-                  , activeColor = fg
+                  , activeBorderColor = fg2
+                  , activeColor = fg2
                   , activeTextColor = bg
                   }
 
@@ -135,7 +151,7 @@ sysMenu k = actionMenu (cl def) k commands where
                ("suspend", spawn "systemctl suspend"),
                ("wifi", spawn "wpa_gui"),
                ("pass", passMenu (cl def)),
-               ("screens", updateScreens)
+               ("screens", connectScreens)
              ]
   reloadCommand = "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
 
@@ -145,7 +161,7 @@ mkeys =
   , ( "M-S-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
   , ( "M-j", windowMenu (cl def) "M-j" )
-  , ( "M-<Space>", (selectWindow bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
+  , ( "M-<Space>", (selectWindowColors bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
   , ( "M-;", sendMessage NextLayout )
   , ( "M-b", sendMessage ToggleStruts )
   , ( "M-x", commandMenu (cl def) )
@@ -228,9 +244,11 @@ nonEmptyNames = do sort <- getSortByTag'
 isFloating :: Window -> X Bool
 isFloating w = gets ((M.member w) . W.floating . windowset)
 
-
 updateScreens :: X ()
-updateScreens = spawn "autorandr -c --default horizontal"
+updateScreens = spawn "autorandr --skip-options gamma --change"
+
+connectScreens :: X ()
+connectScreens = spawn "autorandr --skip-options gamma --change --default horizontal"
 
 selectRandrEvents :: X ()
 selectRandrEvents = do
@@ -239,7 +257,7 @@ selectRandrEvents = do
   io $ xrrSelectInput dpy root rrScreenChangeNotifyMask
 
 onOutputChanged :: X () -> Event -> X All
-onOutputChanged a (RRScreenChangeNotifyEvent {}) = a >> return (All True)
+onOutputChanged a e@(RRScreenChangeNotifyEvent {}) = D.traceShow e $ a >> return (All True)
 onOutputChanged _ _ = return (All True)
 
 randr c = c { startupHook = startupHook c >> selectRandrEvents >> updateScreens,
