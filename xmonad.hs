@@ -41,6 +41,7 @@ import XMonad.Layout.Decoration(Decoration, DefaultShrinker)
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
 import qualified XMonad.StackSet as W
+import XMonad.Layout.Renamed
 
 import qualified Debug.Trace as D
 
@@ -113,7 +114,7 @@ mconfig =
     , modMask     = mod4Mask
     , borderWidth = 2
     , focusedBorderColor = fg2
-    , normalBorderColor = "#ccc"
+    , normalBorderColor = "#bcd2ee"
     , layoutHook = _layout
     , workspaces = ["main", "mail"]
     } `additionalKeysP` mkeys
@@ -129,8 +130,8 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          smartSpacingWithEdge 1 $
-          (subTabbed' $ flipLayout $ ajustableTall (1/2) 1) ||| Full
+          tall ||| Full
+  where tall = renamed [CutWordsLeft 3] $ smartSpacingWithEdge 1 $ subTabbed' $ flipLayout $ ajustableTall (1/2) 1
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
