@@ -200,6 +200,8 @@ mkeys =
   , ("M-S-s", shiftNextScreen)
   , ("M-=", growTileVertically (1/8))
   , ("M--", growTileVertically (-1/8))
+
+  , ("M-S-/", spawn "notify-send \"Check mail\"; notmuch new")
   ] ++
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
   where withMaster a b = do

@@ -119,13 +119,6 @@ animation-charging-4 = ""
 animation-charging-foreground = ${colors.foreground-alt}
 animation-charging-framerate = 750
 
-[module/volume]
-type=internal/volume
-
-format-volume = <label-volume>
-label-muted = "mute"
-format-volume-underline = ${colors.orange}
-
 [module/wlan]
 type = internal/network
 interface = wlp2s0
