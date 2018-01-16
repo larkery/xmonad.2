@@ -76,7 +76,7 @@ addLog c = c
        {
          ppTitle   = const ""
        , ppCurrent = bold . fg "#fff" . ul "#fff"
-       , ppVisible = bold
+       , ppVisible = bold . fg "#fff"
        , ppHidden  = id
        , ppUrgent  = bold . fg "#f44"
        , ppExtras  = [Just <$> (gets numberOfWindows)]
@@ -131,7 +131,7 @@ _layout = trackFloating $
           avoidStruts $
           smartBorders $
           tall ||| Full
-  where tall = renamed [CutWordsLeft 3] $ subTabbed' $ flipLayout $ smartSpacingWithEdge 1 $ ajustableTall (1/2) 1
+  where tall = renamed [CutWordsLeft 3] $ subTabbed' $ flipLayout $ smartSpacing 2 $ ajustableTall (1/2) 1
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a

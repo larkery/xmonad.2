@@ -96,7 +96,10 @@ workspaceMenu cfg key = do
   let addDown c = c { _keymap = (key, down >> holdKey):(_keymap c) }
 
       existing :: [String]
-      existing = map W.tag $ W.workspaces ws
+      existing = map W.tag $
+        (W.workspace $ W.current ws) :
+        (map W.workspace $ W.visible ws) ++
+        (filter (isJust . W.stack) $ W.hidden ws)
       exists :: String -> Bool
       exists = flip elem existing
       ahistorical :: String -> Bool
@@ -108,15 +111,20 @@ workspaceMenu cfg key = do
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
   where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
         new tags s = if s `elem` tags || s == "" then [] else
-                       [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _shift] })]
+                       [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _put, _shift] })]
         wrap tag = C { _value = tag, _choiceLabel = tag, _actions = if tag == minT then [_shift] else [_view, _del, _shift] }
         _view = A {_actionLabel = "view", _action = windows . W.greedyView}
         _create = A {_actionLabel = "create", _action = addWorkspace}
+        _put = A {_actionLabel = "put", _action = withFocused . putWindowToNew}
         _shift = A {_actionLabel = "shift", _action = withFocused . shiftWindowToNew}
         _del = A {_actionLabel = "del", _action = \t -> (windows $ W.view t) >> killAll >> removeWorkspace}
         _rename = A {_actionLabel = "rename", _action = renameWorkspaceByName}
+        putWindowToNew ws w = do addWorkspace ws
+                                 windows $ bringWindow w
+
         shiftWindowToNew ws w = do addHiddenWorkspace ws
                                    windows $ W.shiftWin ws w
+
 
 actionMenu cfg k commands' = do
   r <- menu (addDown cfg) gen :: X (Maybe (Choice (X ()), Action (X ())))
