@@ -86,6 +86,7 @@ addLog c = c
 specialWindows c = c { manageHook = (manageHook c) <+> rules}
   where rules = composeAll [ isDialog --> doFloatSnap
                            , transience'
+                           , className =? "Pinentry-gtk-2" --> doFloatSnap
                            , className =? "Pinentry" --> doFloatSnap
                            , className =? "Xmessage" --> doFloatSnap
                            , className =? "Yad" --> doFloatSnap
@@ -108,7 +109,8 @@ mconfig =
   notifyUrgent $
   addLog $
   addHistory $
-  ewmh $ docks $
+  ewmh $
+  docks $
   (def
     { terminal    = "urxvt"
     , modMask     = mod4Mask
@@ -201,7 +203,7 @@ mkeys =
   , ("M-=", growTileVertically (1/8))
   , ("M--", growTileVertically (-1/8))
 
-  , ("M-S-/", spawn "notify-send \"Check mail\"; notmuch new")
+  , ("M-S-/", spawn "notify-send \"Check mail\"; VERBOSE=1 notmuch new")
   ] ++
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
   where withMaster a b = do
