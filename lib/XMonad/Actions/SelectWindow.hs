@@ -51,7 +51,7 @@ selectWindow = selectWindowColors "white" "black"
 -- Returns "Just" the selected window or Nothing if you press Escape
 -- or an unused key.
 selectWindowColors :: String -> String -> X (Maybe Window)
-selectWindowColors = selectWindowKeys ["asdfgzxcv", "hjkl;nm,.", "qwertyuiop" ] "xft:Sans-24"
+selectWindowColors = selectWindowKeys ["asdfgzxcv", "hjkl;nm,.", "qwertyuiop" ] "xft:Monospace-24"
 
 -- | Select a window from on the screen using the keyboard.
 -- The first argument should contain a string for each physical monitor you want to be able to use.

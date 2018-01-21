@@ -112,10 +112,10 @@ workspaceMenu cfg key = do
   where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
         new tags s = if s `elem` tags || s == "" then [] else
                        [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _put, _shift] })]
-        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = if tag == minT then [_shift] else [_view, _del, _shift] }
+        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = if tag == minT then [_shift] else [_view, _del, _put, _shift] }
         _view = A {_actionLabel = "view", _action = windows . W.greedyView}
         _create = A {_actionLabel = "create", _action = addWorkspace}
-        _put = A {_actionLabel = "put", _action = withFocused . putWindowToNew}
+        _put = A {_actionLabel = "go", _action = withFocused . putWindowToNew}
         _shift = A {_actionLabel = "shift", _action = withFocused . shiftWindowToNew}
         _del = A {_actionLabel = "del", _action = \t -> (windows $ W.view t) >> killAll >> removeWorkspace}
         _rename = A {_actionLabel = "rename", _action = renameWorkspaceByName}
