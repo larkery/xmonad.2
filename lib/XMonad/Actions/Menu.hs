@@ -35,7 +35,7 @@ data MenuConfig a b = MenuConfig
 data ExitState = Select | Cancel | Continue deriving Eq
 
 instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
-  def = MenuConfig { _foreground = "#2d71b8", _background = "#f6f6f6", _font = "xft:Monospace-12",
+  def = MenuConfig { _foreground = "#2d71b8", _background = "#f6f6f6", _font = "xft:Sans-13",
                      _keymap = [ ("C-g", quit),
                                  ("C-p", up), ("C-n", down),
                                  ("M-p", up), ("M-n", down),
