@@ -54,7 +54,7 @@ font-2 = Sans:size=9:weight=bold;0
 
 modules-left = wslog title
 modules-center =
-modules-right = wlan battery volume date
+modules-right = wlan battery date
 
 tray-position = right
 tray-padding = 2
