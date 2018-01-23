@@ -7,7 +7,7 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Layout.TrackFloating
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
-import XMonad.Actions.Menu (_foreground, _background)
+import XMonad.Actions.Menu (_foreground, _background, _width)
 import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
 import XMonad.Actions.DwmPromote
@@ -163,7 +163,7 @@ mkeys =
     ( "M-w", spawn "firefox" )
   , ( "M-S-w", spawn "chromium" )
   , ( "M-e", spawn "emacsclient -c -n" )
-  , ( "M-j", windowMenu (cl def) "M-j" )
+  , ( "M-j", windowMenu (cl $ def {_width = 512}) "M-j" )
   , ( "M-<Space>", (selectWindowColors bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
   , ( "M-;", sendMessage NextLayout )
   , ( "M-b", sendMessage ToggleStruts )
@@ -200,8 +200,8 @@ mkeys =
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
-  , ("M-=", growTileVertically (1/8))
-  , ("M--", growTileVertically (-1/8))
+  , ("M-=", growTileVertically (1/4))
+  , ("M--", growTileVertically (-1/4))
 
   , ("M-S-/", spawn "notify-send \"Check mail\"; VERBOSE=1 notmuch new")
   ] ++
