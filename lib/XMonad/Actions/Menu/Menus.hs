@@ -157,7 +157,11 @@ passMenu cfg = do
         gen :: [Choice String] -> String -> X [Choice String]
         gen ps s = return $ filter (matches s . show) ps
 
+        passm = safeSpawn "passm"
+
         wrap p = C { _value = p, _choiceLabel = p, _actions = [open, user, pass] }
-        open = A { _action = \p -> spawn $ "passm -l "++p, _actionLabel = "go" }
-        user = A { _action = \p -> spawn $ "passm -f user -p -c "++p, _actionLabel = "both" }
-        pass = A { _action = \p -> spawn $ "passm -c -p "++p, _actionLabel = "sel pass" }
+        open = A { _action = \p -> (passm ["--open", p]) , _actionLabel = "go" }
+        user = A { _action = \p -> passm ["-field",  "user",  "--field",  "password", "--copy", p]
+                 , _actionLabel = "both" }
+        pass = A { _action = \p -> passm ["--field", "password", "--copy", p]
+                 , _actionLabel = "sel pass" }

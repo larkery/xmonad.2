@@ -153,7 +153,7 @@ sysMenu k = actionMenu (cl def) k commands where
                ("hibernate", spawn "systemctl hibernate"),
                ("suspend", spawn "systemctl suspend"),
                ("wifi", spawn "wpa_gui"),
-               ("pass", passMenu (cl def)),
+               ("pass", passMenu (cl def {_width = 500})),
                ("screens", connectScreens)
              ]
   reloadCommand = "if type xmonad; then xmonad --recompile && xmonad --restart; else xmessage xmonad not in \\$PATH: \"$PATH\"; fi"
