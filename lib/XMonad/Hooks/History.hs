@@ -15,7 +15,6 @@ data HistoryDB = HistoryDB (Maybe Window) -- currently focused window
 
 instance ExtensionClass HistoryDB where
     initialValue  = HistoryDB Nothing Seq.empty
-    extensionType = PersistentExtension
 
 -- | Action that needs to be executed as a logHook to maintain the
 -- focus history of all windows as the WindowSet changes.

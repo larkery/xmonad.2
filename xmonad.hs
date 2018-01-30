@@ -65,7 +65,11 @@ addHistory c = c { logHook = (logHook c) >> historyHook >> workspaceHistoryHook 
 addLog c = c
   {
     logHook = (logHook c) >> (dynamicLogString pp >>= xmonadPropLog)
-  , startupHook = (startupHook c) >> spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
+  , startupHook = do startupHook c
+                     -- delete all empty hidden workspaces
+                     windows $ \ss -> ss {W.hidden = filter (isJust . W.stack) (W.hidden ss)}
+                     spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
+
   } where
   whiten = wrap "%{F#fff}" "%{F-}"
   bold = wrap "%{T3}" "%{T-}"
