@@ -60,7 +60,7 @@ updateSplits :: [Rational] -> [Rational] -> -- existing splits
 updateSplits ls rs nl nr
   | nl == length ls && nr == length rs = Nothing
   | otherwise = Just (upd ls nl, upd rs nr)
-  where upd xs n = take n $ (scale xs) ++ repeat 1 -- not sure
+  where upd xs n = take n $ (scale xs) ++ repeat 0.75 -- not sure
         scale xs = map (* (fromIntegral $ length xs)) $ norm xs
 
 instance LayoutClass AdjustableTall a where
@@ -82,8 +82,8 @@ instance LayoutClass AdjustableTall a where
       incmastern (IncMasterN d) = l { _capacity = max 0 (cap + d) }
 
       adjust ResetTiles = l { _hsplit = (1/2)
-                           , _leftSplits = map (const 1) (_leftSplits l)
-                           , _rightSplits = map (const 1) (_leftSplits l)
+                           , _leftSplits  = []
+                           , _rightSplits = []
                            }
 
       adjust  (ExpandTile n r)
