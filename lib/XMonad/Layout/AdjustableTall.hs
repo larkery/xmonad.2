@@ -60,7 +60,7 @@ updateSplits :: [Rational] -> [Rational] -> -- existing splits
 updateSplits ls rs nl nr
   | nl == length ls && nr == length rs = Nothing
   | otherwise = Just (upd ls nl, upd rs nr)
-  where upd xs n = take n $ (scale xs) ++ repeat 0.75 -- not sure
+  where upd xs n = take n $ (scale xs) ++ repeat 1 -- not sure
         scale xs = map (* (fromIntegral $ length xs)) $ norm xs
 
 instance LayoutClass AdjustableTall a where
