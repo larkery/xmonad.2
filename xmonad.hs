@@ -30,6 +30,7 @@ import XMonad.Hooks.WorkspaceHistory
 import XMonad.Layout.Flip
 import Graphics.X11.Xrandr (xrrSelectInput)
 import Data.Monoid
+import qualified XMonad.Layout.Magnifier as Mag
 
 import XMonad.Layout.Spacing
 import XMonad.Layout.SubLayouts
@@ -118,7 +119,7 @@ mconfig =
   (def
     { terminal    = "urxvt"
     , modMask     = mod4Mask
-    , borderWidth = 2
+    , borderWidth = 1
     , focusedBorderColor = fg2
     , normalBorderColor = "#bcd2ee"
     , layoutHook = _layout
@@ -137,7 +138,7 @@ _layout = trackFloating $
           avoidStruts $
           smartBorders $
           tall ||| Full
-  where tall = renamed [CutWordsLeft 3] $ subTabbed' $ flipLayout $ smartSpacing 1 $ ajustableTall (1/2) 1
+  where tall = renamed [CutWordsLeft 3] $ subTabbed' $ flipLayout $ smartSpacing 1 $ Mag.magnifierOff $ ajustableTall (1/2) 1
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
@@ -191,6 +192,7 @@ mkeys =
   , ( "M-M1-n", withFocused (sendMessage . mergeDir id ) )
   , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
   , ( "M-/", withFocused (sendMessage . UnMerge) )
+  , ( "M-t", sendMessage Mag.Toggle)
   , ( "M-'", sendMessage ResetTiles)
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
