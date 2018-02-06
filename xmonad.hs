@@ -119,7 +119,7 @@ mconfig =
   (def
     { terminal    = "urxvt"
     , modMask     = mod4Mask
-    , borderWidth = 1
+    , borderWidth = 2
     , focusedBorderColor = fg2
     , normalBorderColor = "#bcd2ee"
     , layoutHook = _layout
