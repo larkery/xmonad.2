@@ -18,6 +18,7 @@ import System.FilePath (takeExtension, dropExtension, combine)
 import XMonad.Hooks.History
 import XMonad.Hooks.WorkspaceHistory
 import XMonad.Hooks.NotifyUrgencyHook (setBorder)
+import XMonad.Actions.SpawnOn
 
 import qualified XMonad.StackSet as W
 
@@ -84,7 +85,7 @@ commandMenu cfg = do
                               map wrap $
                               if null ms then [s] else ms
         run :: Action String
-        run = A { _actionLabel = "run", _action = \c -> spawn c }
+        run = A { _actionLabel = "run", _action = \c -> spawnHere c }
         term = A { _actionLabel = "term", _action = \c -> safeSpawn "urxvt" ["-e", c]  }
         wrap :: String -> Choice String
         wrap c = C { _value = c, _choiceLabel = c, _actions=[run, term] }

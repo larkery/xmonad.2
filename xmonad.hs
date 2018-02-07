@@ -31,6 +31,8 @@ import XMonad.Layout.Flip
 import Graphics.X11.Xrandr (xrrSelectInput)
 import Data.Monoid
 import qualified XMonad.Layout.Magnifier as Mag
+import XMonad.Actions.AfterDrag (ifClick)
+import XMonad.Actions.SpawnOn
 
 import XMonad.Layout.Spacing
 import XMonad.Layout.SubLayouts
@@ -53,7 +55,7 @@ fg =  "#006699"  --"#8b008b"
 
 bg = "#f6f6f6"
 
-cl c = c { _foreground = fg, _background = bg }
+cl c = c { _foreground = bg, _background = fg }
 
 getSortByTag' = ((.) minTLast) <$> getSortByTag
   where minTLast [] = []
@@ -88,7 +90,7 @@ addLog c = c
        , ppSort = getSortByTag'
        }
 
-specialWindows c = c { manageHook = (manageHook c) <+> rules}
+specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
   where rules = composeAll [ isDialog --> doFloatSnap
                            , transience'
                            , className =? "Pinentry-gtk-2" --> doFloatSnap
@@ -128,7 +130,7 @@ mconfig =
     `additionalMouseBindings`
     [((mod4Mask, 1), \w -> do float <- isFloating w
                               if float
-                                then (focus w >> Flex.mouseWindow Flex.discrete w)
+                                then (focus w >> Flex.mouseWindow Flex.discrete w >> ifClick (windows $ W.sink w))
                                 else mouseResizeTile (1/4) mouseMoveWindow w
      )]
   )
@@ -157,7 +159,7 @@ sysMenu k = actionMenu (cl def) k commands where
   commands = [("reload", spawn reloadCommand),
                ("hibernate", spawn "systemctl hibernate"),
                ("suspend", spawn "systemctl suspend"),
-               ("wifi", spawn "wpa_gui"),
+               ("wifi", spawnHere "wpa_gui"),
                ("pass", passMenu (cl def {_width = 500})),
                ("screens", connectScreens)
              ]
@@ -165,12 +167,12 @@ sysMenu k = actionMenu (cl def) k commands where
 
 mkeys =
   [
-    ( "M-w", spawn "firefox" )
-  , ( "M-S-w", spawn "chromium" )
-  , ( "M-e", spawn "emacsclient -c -n" )
+    ( "M-w", spawnHere "firefox" )
+  , ( "M-S-w", spawnHere "chromium" )
+  , ( "M-e", spawnHere "emacsclient -c -n" )
   , ( "M-j", windowMenu (cl $ def {_width = 512}) "M-j" )
   , ( "M-<Space>", (selectWindowColors bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
-  , ( "M-;", sendMessage NextLayout )
+  , ( "M-f", sendMessage NextLayout )
   , ( "M-b", sendMessage ToggleStruts )
   , ( "M-x", commandMenu (cl def) )
   , ( "M-o", workspaceMenu (cl def) "M-o" )
@@ -192,7 +194,7 @@ mkeys =
   , ( "M-M1-n", withFocused (sendMessage . mergeDir id ) )
   , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
   , ( "M-/", withFocused (sendMessage . UnMerge) )
-  , ( "M-t", sendMessage Mag.Toggle)
+  , ( "M-g", sendMessage Mag.Toggle)
   , ( "M-'", sendMessage ResetTiles)
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
