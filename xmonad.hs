@@ -147,7 +147,7 @@ _layout = trackFloating $
   where tall = renamed [CutWordsLeft 5] $
                subTabbed' $
                flipLayout $
-               smartSpacing 2 $
+               smartSpacing 6 $
                Mag.magnifierOff $
                ajustableTall (1/2) 1
 
