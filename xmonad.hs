@@ -21,7 +21,7 @@ import XMonad.Hooks.ManageHelpers
 import XMonad.Layout.FullscreenToggleStruts
 import XMonad.Actions.SelectWindow
 import XMonad.Actions.WindowBringer (bringWindow)
-import Control.Monad ( join )
+import Control.Monad ( join, when )
 import XMonad.Actions.DynamicWorkspaces
 import qualified XMonad.Layout.Fullscreen as FS
 import XMonad.Actions.Warp (warpToWindow)
@@ -52,8 +52,8 @@ main = xmonad mconfig
 
 fg2 = "#00AAFF"
 fg =  "#006699"  --"#8b008b"
-
 bg = "#f6f6f6"
+nborder = "#444"
 
 cl c = c { _foreground = bg, _background = fg }
 
@@ -72,6 +72,7 @@ addLog c = c
                      -- delete all empty hidden workspaces
                      windows $ \ss -> ss {W.hidden = filter (isJust . W.stack) (W.hidden ss)}
                      spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
+                     ensureWorkspaces
 
   } where
   whiten = wrap "%{F#fff}" "%{F-}"
@@ -82,6 +83,7 @@ addLog c = c
   pp = def
        {
          ppTitle   = const ""
+       , ppWsSep = "  "
        , ppCurrent = bold . fg "#fff" . ul "#fff"
        , ppVisible = bold . fg "#fff"
        , ppHidden  = id
@@ -97,7 +99,9 @@ specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
                            , className =? "Pinentry" --> doFloatSnap
                            , className =? "Xmessage" --> doFloatSnap
                            , className =? "Yad" --> doFloatSnap
-                           , className =? "XClock" --> doFloatSnap ]
+                           , className =? "XClock" --> doFloatSnap
+                           , className =? "Dunst" --> doIgnore
+                           ]
         doFloatSnap = doFloatDep snap
         snap (W.RationalRect x y w h) =
           W.RationalRect x' y' w h
@@ -123,7 +127,7 @@ mconfig =
     , modMask     = mod4Mask
     , borderWidth = 2
     , focusedBorderColor = fg2
-    , normalBorderColor = "#bcd2ee"
+    , normalBorderColor = nborder
     , layoutHook = _layout
     , workspaces = ["main", "mail"]
     } `additionalKeysP` mkeys
@@ -140,19 +144,30 @@ _layout = trackFloating $
           avoidStruts $
           smartBorders $
           tall ||| Full
-  where tall = renamed [CutWordsLeft 3] $ subTabbed' $ flipLayout $ smartSpacing 1 $ Mag.magnifierOff $ ajustableTall (1/2) 1
+  where tall = renamed [CutWordsLeft 5] $
+               subTabbed' $
+               flipLayout $
+               smartSpacing 2 $
+               Mag.magnifierOff $
+               ajustableTall (1/2) 1
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
 subTabbed' x = addTabs shrinkText thm $ subLayout [] Simplest x
   where thm = def { fontName = "xft:Sans-9"
                   , decoHeight = 16
-                  , inactiveColor = "#666"
-                  , inactiveBorderColor = "#777"
-                  , inactiveTextColor = "#fff"
+
+                  , inactiveColor = nborder
+                  , inactiveBorderColor = nborder
+                  , inactiveTextColor = bg
+
                   , activeBorderColor = fg2
                   , activeColor = fg2
                   , activeTextColor = bg
+
+                  , unmappedBorderColor = "#777"
+                  , unmappedTextColor = "#eee"
+                  , unmappedColor = "#777"
                   }
 
 sysMenu k = actionMenu (cl def) k commands where
@@ -273,5 +288,18 @@ onOutputChanged :: X () -> Event -> X All
 onOutputChanged a e@(RRScreenChangeNotifyEvent {}) = D.traceShow e $ a >> return (All True)
 onOutputChanged _ _ = return (All True)
 
+ensureWorkspaces :: X ()
+ensureWorkspaces = do
+  xinesc <- withDisplay getCleanedScreenInfo
+  let nscreens = length xinesc
+  withWindowSet $ \ss -> do
+    let nvisible = length $ W.visible ss
+        nhidden = length $ W.hidden ss
+        nmissing = max 0 $ nscreens - (1 + nvisible + nhidden)
+
+    when (nmissing > 0) $ do
+      mapM_ addWorkspace $ take nmissing $ map (((++) "WS-") . show) [1..]
+      rescreen
+
 randr c = c { startupHook = startupHook c >> selectRandrEvents >> updateScreens,
-              handleEventHook = handleEventHook c <+> onOutputChanged updateScreens }
+              handleEventHook = handleEventHook c <+> onOutputChanged updateScreens <+> onOutputChanged ensureWorkspaces }
