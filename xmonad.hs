@@ -142,15 +142,15 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          renamed [CutWordsLeft 1] $
+          renamed [CutWordsLeft 3] $
           subTabbed' $
+          smartSpacing 3 $
           tall ||| Full ||| big
   where tall = flipLayout $
                nm "Tall" $
-               smartSpacing 3 $
                ajustableTall (1/2) 1
         nm n = renamed [Replace n]
-        big = (nm "Big" $ smartSpacing 3 $ (OneBig (3/4) (3/4)))
+        big = (nm "Big" $ (OneBig (3/4) (3/4)))
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
