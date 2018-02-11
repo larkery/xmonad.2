@@ -30,10 +30,9 @@ import XMonad.Hooks.WorkspaceHistory
 import XMonad.Layout.Flip
 import Graphics.X11.Xrandr (xrrSelectInput)
 import Data.Monoid
-import qualified XMonad.Layout.Magnifier as Mag
 import XMonad.Actions.AfterDrag (ifClick)
 import XMonad.Actions.SpawnOn
-
+import XMonad.Layout.OneBig
 import XMonad.Layout.Spacing
 import XMonad.Layout.SubLayouts
 import XMonad.Layout.Tabbed
@@ -83,7 +82,7 @@ addLog c = c
   pp = def
        {
          ppTitle   = const ""
-       , ppWsSep = "  "
+       , ppWsSep = ", "
        , ppCurrent = bold . fg "#fff" . ul "#fff"
        , ppVisible = bold . fg "#fff"
        , ppHidden  = id
@@ -143,13 +142,15 @@ _layout = trackFloating $
           fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          tall ||| Full
-  where tall = renamed [CutWordsLeft 5] $
-               subTabbed' $
-               flipLayout $
-               smartSpacing 6 $
-               Mag.magnifierOff $
+          renamed [CutWordsLeft 1] $
+          subTabbed' $
+          tall ||| Full ||| big
+  where tall = flipLayout $
+               nm "Tall" $
+               smartSpacing 3 $
                ajustableTall (1/2) 1
+        nm n = renamed [Replace n]
+        big = (nm "Big" $ smartSpacing 3 $ (OneBig (3/4) (3/4)))
 
 subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
               l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
@@ -209,7 +210,6 @@ mkeys =
   , ( "M-M1-n", withFocused (sendMessage . mergeDir id ) )
   , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
   , ( "M-/", withFocused (sendMessage . UnMerge) )
-  , ( "M-g", sendMessage Mag.Toggle)
   , ( "M-'", sendMessage ResetTiles)
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
