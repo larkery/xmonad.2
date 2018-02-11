@@ -252,6 +252,9 @@ render = do
 
           moveResizeWindow disp win wx wy width (fi height)
 
+          color bgColor >>= setForeground disp gc
+          drawRectangle disp pixmap gc 0 0 (width - 1) (fi height - 1)
+
           copyArea disp pixmap win gc 0 0 (fi width) (fi height) 0 0
           freePixmap disp pixmap
 
