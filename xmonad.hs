@@ -44,6 +44,7 @@ import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
 import qualified XMonad.StackSet as W
 import XMonad.Layout.Renamed
+import XMonad.Hooks.UrgencyHook (focusUrgent)
 
 import qualified Debug.Trace as D
 
@@ -212,6 +213,7 @@ mkeys =
   , ( "M-/", withFocused (sendMessage . UnMerge) )
   , ( "M-'", sendMessage ResetTiles)
   , ( "M-g", (selectWindowColors bg fg) >>= (flip whenJust (windows . bringWindow)) >> warp )
+  , ( "M-u", focusUrgent )
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
