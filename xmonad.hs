@@ -145,9 +145,9 @@ _layout = trackFloating $
           renamed [CutWordsLeft 3] $
           subTabbed' $
           smartSpacing 3 $
+          flipLayout $
           tall ||| Full ||| big
-  where tall = flipLayout $
-               nm "Tall" $
+  where tall = nm "Tall" $
                ajustableTall (1/2) 1
         nm n = renamed [Replace n]
         big = (nm "Big" $ (OneBig (3/4) (3/4)))
@@ -211,6 +211,7 @@ mkeys =
   , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
   , ( "M-/", withFocused (sendMessage . UnMerge) )
   , ( "M-'", sendMessage ResetTiles)
+  , ( "M-g", (selectWindowColors bg fg) >>= (flip whenJust (windows . bringWindow)) >> warp )
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
@@ -218,6 +219,7 @@ mkeys =
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
+  , ( "M-S-k", (selectWindowColors bg fg) >>= (flip whenJust killWindow) )
   , ( "M-C-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
   , ( "M-C-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
