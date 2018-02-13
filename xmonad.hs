@@ -34,7 +34,6 @@ import XMonad.Actions.AfterDrag (ifClick)
 import XMonad.Actions.SpawnOn
 import XMonad.Layout.OneBig
 import XMonad.Layout.Spacing
-import XMonad.Layout.SubLayouts
 import XMonad.Layout.Tabbed
 import XMonad.Layout.LayoutModifier (LayoutModifier, ModifiedLayout (..))
 import XMonad.Layout.Simplest (Simplest (..))
@@ -139,38 +138,19 @@ mconfig =
      )]
   )
 
-_layout = trackFloating $
-          fullscreenToggleStruts $
+_layout = fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
           renamed [CutWordsLeft 3] $
-          subTabbed' $
           smartSpacing 3 $
           flipLayout $
+--          subTabbed' $ -- this appears to break trackFloating, which is annoying
+          trackFloating $
           tall ||| Full ||| big
   where tall = nm "Tall" $
                ajustableTall (1/2) 1
         nm n = renamed [Replace n]
         big = (nm "Big" $ (OneBig (3/4) (3/4)))
-
-subTabbed' :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
-              l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker) (ModifiedLayout (Sublayout Simplest) l) a
-subTabbed' x = addTabs shrinkText thm $ subLayout [] Simplest x
-  where thm = def { fontName = "xft:Sans-9"
-                  , decoHeight = 16
-
-                  , inactiveColor = nborder
-                  , inactiveBorderColor = nborder
-                  , inactiveTextColor = bg
-
-                  , activeBorderColor = fg2
-                  , activeColor = fg2
-                  , activeTextColor = bg
-
-                  , unmappedBorderColor = "#777"
-                  , unmappedTextColor = "#eee"
-                  , unmappedColor = "#777"
-                  }
 
 sysMenu k = actionMenu (cl def) k commands where
   commands = [("reload", spawn reloadCommand),
@@ -208,11 +188,9 @@ mkeys =
 
   , ( "M-d", nextScreen >> warp )
   , ( "M-n", windows $ W.focusDown )
-  , ( "M-M1-n", withFocused (sendMessage . mergeDir id ) )
-  , ( "M-M1-p", withFocused (sendMessage . mergeDir W.focusUp') )
-  , ( "M-/", withFocused (sendMessage . UnMerge) )
+
   , ( "M-'", sendMessage ResetTiles)
-  , ( "M-g", (selectWindowColors bg fg) >>= (flip whenJust (windows . bringWindow)) >> warp )
+  , ( "M-g", (selectWindowColors bg fg) >>= (flip whenJust (windows . bringToMaster)) >> warp )
   , ( "M-u", focusUrgent )
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
@@ -222,8 +200,8 @@ mkeys =
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
   , ( "M-S-k", (selectWindowColors bg fg) >>= (flip whenJust killWindow) )
-  , ( "M-C-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
-  , ( "M-C-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
+  , ( "M-M1-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
+  , ( "M-M1-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
   , ("M-s", swapNextScreen)
   , ("M-S-s", shiftNextScreen)
@@ -233,7 +211,10 @@ mkeys =
   , ("M-S-/", spawn "notify-send \"Check mail\"; VERBOSE=1 notmuch new")
   ] ++
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
-  where withMaster a b = do
+  where bringToMaster :: Window -> WindowSet -> WindowSet
+        bringToMaster w = W.shiftMaster . (W.focusWindow w) . (bringWindow w)
+
+        withMaster a b = do
           st <- gets (W.stack . W.workspace . W.current . windowset)
           lwh <- orderedWindows
           let here = intersect lwh $ W.integrate' st
