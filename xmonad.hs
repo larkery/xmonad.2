@@ -44,6 +44,8 @@ import qualified XMonad.Actions.FlexibleManipulate as Flex
 import qualified XMonad.StackSet as W
 import XMonad.Layout.Renamed
 import XMonad.Hooks.UrgencyHook (focusUrgent)
+import XMonad.Layout.MultiToggle
+import XMonad.Layout.MultiToggle.Instances
 
 import qualified Debug.Trace as D
 
@@ -141,16 +143,16 @@ mconfig =
 _layout = fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
-          renamed [CutWordsLeft 3] $
+          renamed [CutWordsLeft 2] $
           smartSpacing 3 $
+          mkToggle (single FULL) $
           flipLayout $
---          subTabbed' $ -- this appears to break trackFloating, which is annoying
           trackFloating $
-          tall ||| Full ||| big
+          tall ||| big
   where tall = nm "Tall" $
                ajustableTall (1/2) 1
         nm n = renamed [Replace n]
-        big = (nm "Big" $ (OneBig (3/4) (3/4)))
+        big = (nm "Big" $ (OneBig (1/2 + 1/8) (1/2 + 1/8)))
 
 sysMenu k = actionMenu (cl def) k commands where
   commands = [("reload", spawn reloadCommand),
@@ -169,7 +171,8 @@ mkeys =
   , ( "M-e", spawnHere "emacsclient -c -n" )
   , ( "M-j", windowMenu (cl $ def {_width = 512}) "M-j" )
   , ( "M-<Space>", (selectWindowColors bg fg) >>= (flip whenJust (windows . W.focusWindow)) >> warp  )
-  , ( "M-f", sendMessage NextLayout )
+  , ( "M-f", sendMessage $ Toggle FULL )
+  , ( "M-v", sendMessage NextLayout )
   , ( "M-b", sendMessage ToggleStruts )
   , ( "M-x", commandMenu (cl def) )
   , ( "M-o", workspaceMenu (cl def) "M-o" )
