@@ -24,8 +24,8 @@ data AdjustableTileMessage =
 
 instance Message AdjustableTileMessage
 
-ajustableTall :: Rational -> Int -> AdjustableTall a
-ajustableTall s n = AdjustableTall s n [] [] (Rectangle 0 0 0 0)
+adjustableTall :: Rational -> Int -> AdjustableTall a
+adjustableTall s n = AdjustableTall s n [] [] (Rectangle 0 0 0 0)
 
 data AdjustableTall a =
   AdjustableTall
@@ -60,7 +60,7 @@ updateSplits :: [Rational] -> [Rational] -> -- existing splits
 updateSplits ls rs nl nr
   | nl == length ls && nr == length rs = Nothing
   | otherwise = Just (upd ls nl, upd rs nr)
-  where upd xs n = take n $ (scale xs) ++ repeat 1 -- not sure
+  where upd xs n = scale $ take n $ xs ++ (repeat $ if null xs then 1 else minimum xs)
         scale xs = map (* (fromIntegral $ length xs)) $ norm xs
 
 instance LayoutClass AdjustableTall a where

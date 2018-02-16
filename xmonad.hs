@@ -150,7 +150,7 @@ _layout = fullscreenToggleStruts $
           trackFloating $
           tall ||| big
   where tall = nm "Tall" $
-               ajustableTall (1/2) 1
+               adjustableTall (1/2) 1
         nm n = renamed [Replace n]
         big = (nm "Big" $ (OneBig (1/2 + 1/8) (1/2 + 1/8)))
 
