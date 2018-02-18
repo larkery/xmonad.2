@@ -6,6 +6,7 @@ import XMonad.Layout (splitHorizontallyBy)
 import qualified XMonad.StackSet as W
 import Data.Maybe
 import Control.Monad (msum)
+import Control.Arrow (first, second)
 import Graphics.X11.Xlib.Extras (getWindowAttributes,
                                  WindowAttributes (..))
 import Graphics.X11.Xlib.Misc (warpPointer)
@@ -25,14 +26,13 @@ data AdjustableTileMessage =
 instance Message AdjustableTileMessage
 
 adjustableTall :: Rational -> Int -> AdjustableTall a
-adjustableTall s n = AdjustableTall s n [] [] (Rectangle 0 0 0 0)
+adjustableTall s n = AdjustableTall s n ([], []) (Rectangle 0 0 0 0)
 
 data AdjustableTall a =
   AdjustableTall
   { _hsplit   :: !Rational
   , _capacity :: !Int
-  , _leftSplits :: ![Rational]
-  , _rightSplits :: ![Rational]
+  , _splits :: !([Rational], [Rational])
   , _lastRect :: !Rectangle
   } deriving (Read, Show)
 
@@ -60,7 +60,7 @@ updateSplits :: [Rational] -> [Rational] -> -- existing splits
 updateSplits ls rs nl nr
   | nl == length ls && nr == length rs = Nothing
   | otherwise = Just (upd ls nl, upd rs nr)
-  where upd xs n = scale $ take n $ xs ++ (repeat $ if null xs then 1 else minimum xs)
+  where upd xs n = scale $ take n $ xs ++ (repeat $ if null xs then 1 else (last xs)/1.5)
         scale xs = map (* (fromIntegral $ length xs)) $ norm xs
 
 instance LayoutClass AdjustableTall a where
@@ -82,13 +82,12 @@ instance LayoutClass AdjustableTall a where
       incmastern (IncMasterN d) = l { _capacity = max 0 (cap + d) }
 
       adjust ResetTiles = l { _hsplit = (1/2)
-                           , _leftSplits  = []
-                           , _rightSplits = []
+                            , _splits = ([], [])
                            }
 
       adjust  (ExpandTile n r)
-        | n < cap = l { _leftSplits = expand' n (_leftSplits l) }
-        | otherwise = l { _rightSplits = expand' (n - cap) (_rightSplits l) }
+        | n < cap = l { _splits = first (expand' n) (_splits l) }
+        | otherwise = l { _splits = second (expand' (n - cap)) (_splits l)}
         where a +| b = snap 16 a+b
               a -| b = snap 16 (a-b)
               expand' n splits =
@@ -102,16 +101,16 @@ instance LayoutClass AdjustableTall a where
         | (e == L && n >= cap) || (e == R && n < cap) = l { _hsplit = max (1/16) $ min (15/16) $ p }
           -- adjust top & bottom thing
         | e == T = adjust (AdjustTile (n-1) B px)
-        | e == B && n < cap = l { _leftSplits = adjustSplit (_leftSplits l) n p }
-        | e == B = l { _rightSplits = adjustSplit (_rightSplits l) (n - cap) p }
+        | e == B && n < cap = l { _splits = first (adjustSplit n p) (_splits l) }
+        | e == B = l { _splits = second (adjustSplit (n - cap) p) (_splits l) }
           -- do nothing
         | otherwise = l
         where Rectangle sx sy sw sh = _lastRect l
               p | e == L || e == R = snap 32 $ (fromIntegral px - fromIntegral sx) / (fromIntegral sw)
                 | otherwise = snap 32 $ (fromIntegral px - fromIntegral sy) / (fromIntegral sh)
 
-      adjustSplit :: [Rational] -> Int -> Rational -> [Rational]
-      adjustSplit ss n p
+      adjustSplit ::  Int -> Rational -> [Rational] -> [Rational]
+      adjustSplit n p ss
         | n < 0 = ss
         | otherwise = let (above, below) = splitAt n ss
                           ta = sum above
@@ -126,12 +125,12 @@ instance LayoutClass AdjustableTall a where
     let windows = W.integrate st
         (lws, rws) = windows $> splitAt (_capacity l)
         msplits =
-          updateSplits (_leftSplits l) (_rightSplits l) (length lws) (length rws)
-        l' = ((\(ls, rs) -> l {_leftSplits = ls, _rightSplits = rs}) <$> msplits)
+          updateSplits (fst $ _splits l) (snd $ _splits l) (length lws) (length rws)
+        l' = ((\x -> l {_splits = x }) <$> msplits)
         l'' = if r /= (_lastRect l)
               then Just $ (fromMaybe l l') { _lastRect = r }
               else l'
-        (lss, rss) = (\s -> (_leftSplits s, _rightSplits s)) $ fromMaybe l l''
+        (lss, rss) = _splits $ fromMaybe l l''
         cutup rect splits = reverse $ snd $ foldl (flip $ splitRow rect) (0, []) $ norm splits
     in return $ flip (,) l'' $
        if (null lws) || (null rws)
