@@ -89,6 +89,7 @@ instance LayoutClass AdjustableTall a where
 
       adjust ResetTiles = l { _hsplit = (1/2)
                             , _splits = ([], [])
+                            , _last = ([], [])
                            }
 
       adjust  (ExpandTile n r)
