@@ -26,13 +26,20 @@ data AdjustableTileMessage =
 instance Message AdjustableTileMessage
 
 adjustableTall :: Rational -> Int -> AdjustableTall a
-adjustableTall s n = AdjustableTall s n ([], []) (Rectangle 0 0 0 0)
+adjustableTall s n = AdjustableTall {
+  _hsplit = s
+  , _capacity = n
+  , _splits = ([], [])
+  , _last = ([], [])
+  , _lastRect = (Rectangle 0 0 0 0)
+  }
 
 data AdjustableTall a =
   AdjustableTall
   { _hsplit   :: !Rational
   , _capacity :: !Int
   , _splits :: !([Rational], [Rational])
+  , _last :: !([Rational], [Rational])
   , _lastRect :: !Rectangle
   } deriving (Read, Show)
 
@@ -54,14 +61,13 @@ splitRow (Rectangle sx sy sw sh) v (v0, acc) =
     wh = fromIntegral $ floor $ (fromIntegral sh) * v
     wr = Rectangle sx wy sw wh
 
-updateSplits :: [Rational] -> [Rational] -> -- existing splits
-                Int -> Int -> -- desired sizes
-                Maybe ([Rational], [Rational])
-updateSplits ls rs nl nr
-  | nl == length ls && nr == length rs = Nothing
-  | otherwise = Just (upd ls nl, upd rs nr)
-  where upd xs n = scale $ take n $ xs ++ (repeat $ if null xs then 1 else (last xs))
-        scale xs = map (* (fromIntegral $ length xs)) $ norm xs
+upd :: [Rational] -> [Rational] -> Int -> ([Rational], [Rational])
+upd xs lst n
+  | n == length xs = (xs, lst)
+  | n > length xs = (scale $ take' n $ (xs ++ lst), drop (n - (length xs)) lst)
+  | n < length xs = let (xs0, xs1) = splitAt n xs in (scale $ xs0, lst ++ xs1)
+  where take' n xs = take n $ xs ++ (repeat $ if null xs then 1 else (last xs))
+        scale xs = xs
 
 instance LayoutClass AdjustableTall a where
   description l = "ATall"
@@ -124,9 +130,9 @@ instance LayoutClass AdjustableTall a where
   doLayout l r st =
     let windows = W.integrate st
         (lws, rws) = windows $> splitAt (_capacity l)
-        msplits =
-          updateSplits (fst $ _splits l) (snd $ _splits l) (length lws) (length rws)
-        l' = ((\x -> l {_splits = x }) <$> msplits)
+        ml = upd (fst $ _splits l) (fst $ _last l) (length lws)
+        mr = upd (snd $ _splits l) (snd $ _last l) (length rws)
+        l' = Just $ l { _splits = (fst ml, fst mr), _last = (snd ml, snd mr) }
         l'' = if r /= (_lastRect l)
               then Just $ (fromMaybe l l') { _lastRect = r }
               else l'
