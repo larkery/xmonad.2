@@ -148,11 +148,11 @@ _layout = fullscreenToggleStruts $
           mkToggle (single FULL) $
           flipLayout $
           trackFloating $
-          tall ||| big
+          big ||| tall
   where tall = nm "Tall" $
                adjustableTall (1/2) 1
         nm n = renamed [Replace n]
-        big = (nm "Big" $ (OneBig (1/2 + 1/8) (1/2 + 1/8)))
+        big = (nm "Big" $ Mirror (OneBig (1/2 + 1/8) (1/2 + 1/8)))
 
 sysMenu k = actionMenu (cl def) k commands where
   commands = [("reload", spawn reloadCommand),
