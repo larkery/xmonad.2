@@ -204,7 +204,7 @@ mkeys =
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
-  , ( "M-S-k", (selectWindowColors bg fg) >>= (flip whenJust killWindow) )
+  , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust killWindow) )
   , ( "M-M1-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
   , ( "M-M1-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
