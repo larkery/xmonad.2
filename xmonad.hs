@@ -38,6 +38,7 @@ import XMonad.Layout.Tabbed
 import XMonad.Layout.LayoutModifier (LayoutModifier, ModifiedLayout (..))
 import XMonad.Layout.Simplest (Simplest (..))
 import XMonad.Layout.Decoration(Decoration, DefaultShrinker)
+import XMonad.Hooks.FadeInactive (setOpacity)
 
 import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
@@ -100,9 +101,10 @@ specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
                            , className =? "Pinentry" --> doFloatSnap
                            , className =? "Xmessage" --> doFloatSnap
                            , className =? "Yad" --> doFloatSnap
-                           , className =? "XClock" --> doFloatSnap
+                           , className =? "XClock" --> doFloatSnap <+> op 0.6
                            , className =? "Dunst" --> doIgnore
                            ]
+        op x = (ask >>= \w -> liftX (setOpacity w x) >> idHook)
         doFloatSnap = doFloatDep snap
         snap (W.RationalRect x y w h) =
           W.RationalRect x' y' w h

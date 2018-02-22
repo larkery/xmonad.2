@@ -22,6 +22,7 @@ import XMonad.Util.Font
 import XMonad.Util.XUtils
 import Data.List (sortOn)
 import qualified Debug.Trace as D
+import XMonad.Hooks.FadeInactive (setOpacity)
 
 import XMonad
 import qualified XMonad.StackSet as W
@@ -51,7 +52,7 @@ selectWindow = selectWindowColors "white" "black"
 -- Returns "Just" the selected window or Nothing if you press Escape
 -- or an unused key.
 selectWindowColors :: String -> String -> X (Maybe Window)
-selectWindowColors = selectWindowKeys ["asdfgzxcv", "hjkl;nm,.", "qwertyuiop" ] "xft:Sans-24"
+selectWindowColors = selectWindowKeys ["asdfgzxcv", "hjkl;nm,.", "qwertyuiop" ] "xft:Sans-48"
 
 -- | Select a window from on the screen using the keyboard.
 -- The first argument should contain a string for each physical monitor you want to be able to use.
@@ -84,6 +85,7 @@ selectWindowKeys keyss fontName fg bg = withDisplay $ \dpy -> do
       winKeys = concatMap (uncurry zip) $ zip keyss winPos
       pop (k, (w, (x, y))) = do
         win <- createNewWindow (Rectangle (fromIntegral x-winHalfHeight) (fromIntegral y-winHalfHeight) winHeight winHeight) Nothing bg False
+        setOpacity win 0.75
         showWindow win
         paintAndWrite win font winHeight winHeight 2 bg fg fg bg [AlignCenter] [[k]]
         return $ (win, k)

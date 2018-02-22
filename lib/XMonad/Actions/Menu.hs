@@ -13,6 +13,7 @@ import Data.Maybe
 import Data.List (foldl', findIndex)
 import Text.ParserCombinators.ReadP hiding (get)
 import XMonad.Util.EZConfig (parseKey)
+import XMonad.Hooks.FadeInactive (setOpacity)
 
 import qualified XMonad.StackSet as W
 import qualified Data.Map.Strict as M
@@ -29,7 +30,8 @@ data MenuConfig a b = MenuConfig
                  (Dimension, Dimension) ->
                  Maybe (Position, Position) ->
                  (Position, Position),
-    _width :: Int
+    _width :: Int,
+    _opacity :: Rational
   }
 
 data ExitState = Select | Cancel | Continue deriving Eq
@@ -54,7 +56,8 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
                                ],
                      _rowLimit = 25,
                      _location = middleOfScreen,
-                     _width = 400
+                     _width = 400,
+                     _opacity = 0.9
                    }
 
 middleOfScreen :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
@@ -108,6 +111,7 @@ menu c g = do
   -- determine screen coordinates and dimensions of window
   -- xmoveresizewindow
   win <- io $ mkUnmanagedWindow d (defaultScreenOfDisplay d) rw (4+sx) (4+sy) 200 1
+  setOpacity win (_opacity c)
   gc <- io $ createGC d win
   io $ mapWindow d win
   io $ selectInput d win $ exposureMask .|. keyPressMask
