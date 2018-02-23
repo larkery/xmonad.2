@@ -47,6 +47,7 @@ import XMonad.Layout.Renamed
 import XMonad.Hooks.UrgencyHook (focusUrgent)
 import XMonad.Layout.MultiToggle
 import XMonad.Layout.MultiToggle.Instances
+import qualified XMonad.Util.Stack as Z
 
 import qualified Debug.Trace as D
 
@@ -195,7 +196,8 @@ mkeys =
   , ( "M-n", windows $ W.focusDown )
 
   , ( "M-'", sendMessage ResetTiles)
-  , ( "M-g", (selectWindowColors bg fg) >>= (flip whenJust (windows . bringToMaster)) >> warp )
+  , ( "M-g", (selectWindowColors bg "darkorange") >>= (flip whenJust (windows . bringToMaster)) >> warp )
+  , ( "M-a", (selectWindowColors bg "purple") >>= (flip whenJust swapFocused) >> warp )
   , ( "M-u", focusUrgent )
 
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
@@ -204,7 +206,7 @@ mkeys =
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
-  , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust killWindow) )
+  , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust swapFocused) )
   , ( "M-M1-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
   , ( "M-M1-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
@@ -218,6 +220,15 @@ mkeys =
   concat [ [ ("M-" ++ show n, view n) , ("M-S-" ++ show n, shiftTo n)] | n <- [1 .. 9] ]
   where bringToMaster :: Window -> WindowSet -> WindowSet
         bringToMaster w = W.shiftMaster . (W.focusWindow w) . (bringWindow w)
+
+        swapFocused :: Window -> X ()
+        swapFocused w = withFocused $ \f -> (windows (swapWindows f w))
+
+        swapWindows w1 w2 s = W.mapWorkspace (\w -> w {W.stack = Z.mapZ_ exch (W.stack w)}) s
+          where exch a
+                  | a == w1 = w2
+                  | a == w2 = w1
+                  | otherwise = a
 
         withMaster a b = do
           st <- gets (W.stack . W.workspace . W.current . windowset)
