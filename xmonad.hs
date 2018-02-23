@@ -198,15 +198,14 @@ mkeys =
   , ( "M-'", sendMessage ResetTiles)
   , ( "M-g", (selectWindowColors bg "darkorange") >>= (flip whenJust (windows . bringToMaster)) >> warp )
   , ( "M-a", (selectWindowColors bg "purple") >>= (flip whenJust swapFocused) >> warp )
+  , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust killWindow) )
   , ( "M-u", focusUrgent )
-
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
   , ( "M-p", windows $ W.focusUp )
   , ( "M-S-n", windows $ W.swapDown )
   , ( "M-S-p", windows $ W.swapUp )
   , ( "M-k", kill )
-  , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust swapFocused) )
   , ( "M-M1-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
   , ( "M-M1-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
