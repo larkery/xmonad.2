@@ -151,7 +151,7 @@ _layout = fullscreenToggleStruts $
           mkToggle (single FULL) $
           flipLayout $
           trackFloating $
-          big ||| tall
+          tall ||| big
   where tall = nm "Tall" $
                adjustableTall (1/2) 1
         nm n = renamed [Replace n]

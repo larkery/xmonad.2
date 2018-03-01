@@ -96,7 +96,7 @@ instance LayoutClass AdjustableTall a where
         | n < cap = l { _splits = first (expand' n) (_splits l) }
         | otherwise = l { _splits = second (expand' (n - cap)) (_splits l)}
         where a +| b = snap 16 a+b
-              a -| b = snap 16 (a-b)
+              a -| b = a --snap 16 (a-b)
               expand' n splits =
                 case first reverse $ splitAt n splits of
                   ([], h:(t:tt)) -> (h+|r):(t-|r):tt
