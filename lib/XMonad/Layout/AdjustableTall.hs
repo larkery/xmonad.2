@@ -15,6 +15,8 @@ import qualified Data.Map as M
 import qualified Debug.Trace as D
 import Control.Arrow ( first )
 
+import XMonad.Layout.WindowArranger (WindowArrangerMsg(SetGeometry))
+
 data Edge = L | R | T | B deriving (Read, Show, Typeable, Eq)
 
 data AdjustableTileMessage =
@@ -173,21 +175,37 @@ mouseResizeTile border fallback w =
       ox = fromIntegral ox'
       oy = fromIntegral oy'
 
-      -- drag handler needs to divide?
-      drag mouse wpos wdim  e1 e2
-        | mouse - wpos < (wdim * border) =
-            (True, 0, \px -> sendMessage $ AdjustTile n e1 px)
-        | (wpos + wdim) - mouse < (wdim * border) =
-            (True, wdim, \px -> sendMessage $ AdjustTile n e2 px)
-        | otherwise =
-            (False, mouse - wpos, \px -> return ())
+      sg r = sendMessage $ SetGeometry r
 
-      (hitX, warpx, dragX) = drag ox wx ww L R
-      (hitY, warpy, dragY) = drag oy wy wh T B
+      -- drag handler needs to divide?
+      drag mouse wpos wdim e1 e2
+        | mouse - wpos < (wdim * border) =
+            (True, e1, 0, \px -> sendMessage $ AdjustTile n e1 px)
+        | (wpos + wdim) - mouse < (wdim * border) =
+            (True, e2, wdim, \px -> sendMessage $ AdjustTile n e2 px)
+        | otherwise =
+            (False, e1, mouse - wpos, \px -> return ())
+
+      (hitX, ex, warpx, dragX) = drag ox wx ww L R
+      (hitY, ey, warpy, dragY) = drag oy wy wh T B
+
+      sgx x' r@(Rectangle x y w h)
+        | hitX && ex == L = (Rectangle (fromIntegral x') y (w + (fromIntegral x) - (fromIntegral x')) h)
+        | hitX && ex == R = (Rectangle x y (fromIntegral x' - fromIntegral x) h)
+        | otherwise = r
+
+      sgy y' r@(Rectangle x y w h)
+        | hitY && ey == T = (Rectangle x (fromIntegral y') w (h + fromIntegral y - fromIntegral y'))
+        | hitY && ey == B = (Rectangle x y w (fromIntegral y' - fromIntegral y))
+        | otherwise = r
+
+      orect = Rectangle (fromIntegral $ wa_x wa) (fromIntegral $ wa_y wa) (fromIntegral $ wa_width wa) (fromIntegral $ wa_height wa)
 
       dragHandler x y = do
         dragX x
         dragY y
+        sg $ sgy y $ sgx x $ orect
+
       stopHandler = return ()
   if hitX || hitY
     -- warp pointer here
