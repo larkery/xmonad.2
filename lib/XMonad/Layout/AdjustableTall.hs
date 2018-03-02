@@ -95,14 +95,16 @@ instance LayoutClass AdjustableTall a where
       adjust  (ExpandTile n r)
         | n < cap = l { _splits = first (expand' n) (_splits l) }
         | otherwise = l { _splits = second (expand' (n - cap)) (_splits l)}
-        where a +| b = snap 16 a+b
-              a -| b = a --snap 16 (a-b)
-              expand' n splits =
-                case first reverse $ splitAt n splits of
-                  ([], h:(t:tt)) -> (h+|r):(t-|r):tt
-                  (u:us, h:(t:tt)) -> (reverse $ (u -| (r/2)):us) ++ (h+|r):(t-|(r/2)):tt
-                  (u:us, h:[]) -> (reverse $ (h+|r):(u -| (r)):us)
-                  _ -> splits
+        where expand' n splits =
+                let nbig = length (filter ((<) (1/8)) splits) - 1
+                in if nbig == 0 then splits
+                   else let d = r / (fromIntegral nbig) in
+                          map (snap 16) $
+                          map (\x -> if x < 1/8 then (1/8) else (x - d)) $
+                          toNth ((+) (2 * r)) n splits
+              toNth f n xs =
+                let (u, d) = splitAt n xs
+                in u ++ (map f $ take 1 d) ++ (drop 1 d)
       adjust (AdjustTile n e px)
         -- adjust the central split:
         | (e == L && n >= cap) || (e == R && n < cap) = l { _hsplit = max (1/16) $ min (15/16) $ p }
