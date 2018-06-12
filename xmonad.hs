@@ -8,7 +8,6 @@ import XMonad.Layout.TrackFloating
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Actions.Menu.Menus
 import XMonad.Actions.Menu (_foreground, _background, _width)
-import XMonad.Hooks.DynamicLog
 import XMonad.Actions.CycleWS
 import XMonad.Actions.DwmPromote
 import Data.Maybe
@@ -53,10 +52,10 @@ import qualified Debug.Trace as D
 
 main = xmonad mconfig
 
-fg2 = "#00AAFF"
-fg =  "#006699"  --"#8b008b"
+fg2 = "#777766"
+fg =  "#006699"
 bg = "#f6f6f6"
-nborder = "#444"
+nborder = "#555"
 
 cl c = c { _foreground = bg, _background = fg }
 
@@ -70,30 +69,12 @@ addHistory c = c { logHook = (logHook c) >> historyHook >> workspaceHistoryHook 
 
 addLog c = c
   {
-    logHook = (logHook c) >> (dynamicLogString pp >>= xmonadPropLog)
-  , startupHook = do startupHook c
+    startupHook = do startupHook c
                      -- delete all empty hidden workspaces
                      windows $ \ss -> ss {W.hidden = filter (isJust . W.stack) (W.hidden ss)}
-                     spawn "pkill polybar; polybar -c ~/.xmonad/polybar-config example"
                      ensureWorkspaces
 
-  } where
-  whiten = wrap "%{F#fff}" "%{F-}"
-  bold = wrap "%{T3}" "%{T-}"
-  ul c = wrap ("%{u"++c++" +u}") "%{-u}"
-  fg c = wrap ("%{F"++c++"}") "%{F-}"
-  numberOfWindows = whiten . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset
-  pp = def
-       {
-         ppTitle   = const ""
-       , ppWsSep = ", "
-       , ppCurrent = bold . fg "#fff" . ul "#fff"
-       , ppVisible = bold . fg "#fff"
-       , ppHidden  = id
-       , ppUrgent  = bold . fg "#f44"
-       , ppExtras  = [Just <$> (gets numberOfWindows)]
-       , ppSort = getSortByTag'
-       }
+  }
 
 specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
   where rules = composeAll [ isDialog --> doFloatSnap
@@ -143,14 +124,14 @@ mconfig =
      )]
   )
 
-_layout = fullscreenToggleStruts $
+_layout = trackFloating $
+          fullscreenToggleStruts $
           avoidStruts $
           smartBorders $
           renamed [CutWordsLeft 2] $
           smartSpacing 3 $
           mkToggle (single FULL) $
           flipLayout $
-          trackFloating $
           tall ||| big
   where tall = nm "Tall" $
                adjustableTall (1/2) 1
@@ -178,7 +159,7 @@ mkeys =
   , ( "M-v", sendMessage NextLayout )
   , ( "M-b", sendMessage ToggleStruts )
   , ( "M-x", commandMenu (cl def) )
-  , ( "M-o", workspaceMenu (cl def) "M-o" )
+  , ( "M-;", workspaceMenu (cl def) "M-;" )
   , ( "M-q", sysMenu "M-q" )
 
   , ( "M-r", toggleFlip )
@@ -192,7 +173,7 @@ mkeys =
   , ( "<XF86MonBrightnessUp>", spawn "xbacklight -inc 10" )
   , ( "<XF86MonBrightnessDown>", spawn "xbacklight -dec 10" )
 
-  , ( "M-d", nextScreen >> warp )
+  , ( "M-o", nextScreen >> warp )
   , ( "M-n", windows $ W.focusDown )
 
   , ( "M-'", sendMessage ResetTiles)
@@ -209,10 +190,11 @@ mkeys =
   , ( "M-M1-n", findWorkspace getSortByTag' Next interestingWS 1 >>= (windows . W.greedyView))
   , ( "M-M1-p", findWorkspace getSortByTag' Prev interestingWS 1 >>= (windows . W.greedyView))
 
-  , ("M-s", swapNextScreen)
-  , ("M-S-s", shiftNextScreen)
+  , ("M-M1-o", swapNextScreen)
+  , ("M-S-o", shiftNextScreen)
   , ("M-=", growTileVertically (1/4))
   , ("M--", growTileVertically (-1/4))
+  , ("M-/", spawn "notify-send \"$(date)\"")
 
   , ("M-S-/", spawn "notify-send \"Check mail\"; VERBOSE=1 notmuch new")
   ] ++
@@ -256,7 +238,8 @@ mkeys =
         bringT = windows $ \ss -> fromMaybe ss $ (flip bringWindow ss) <$> (masterOf minT ss)
 
 withNthNEWorkspace :: (String -> WindowSet -> WindowSet) -> Int -> X ()
-withNthNEWorkspace job wnum = do ws <- nonEmptyNames
+withNthNEWorkspace job wnum = do ws' <- nonEmptyNames
+                                 let ws = filter (/= "&") ws'
                                  case drop wnum ws of
                                    (w:_) -> windows $ job $ w
                                    [] -> return ()
