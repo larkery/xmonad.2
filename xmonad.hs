@@ -48,6 +48,8 @@ import XMonad.Layout.MultiToggle
 import XMonad.Layout.MultiToggle.Instances
 import qualified XMonad.Util.Stack as Z
 
+import qualified XMonad.Util.Hint as Hint
+
 import qualified Debug.Trace as D
 
 main = xmonad mconfig
@@ -99,6 +101,7 @@ specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
                | otherwise = y
 
 mconfig =
+  hint $
   randr $
   FS.fullscreenSupport $
   specialWindows $
@@ -286,3 +289,9 @@ ensureWorkspaces = do
 
 randr c = c { startupHook = startupHook c >> selectRandrEvents >> updateScreens,
               handleEventHook = handleEventHook c <+> onOutputChanged updateScreens <+> onOutputChanged ensureWorkspaces }
+
+hint c = c { startupHook = startupHook c >> do
+               XConf { display = dpy, theRoot = rootw } <- ask
+               sym <- io $ keysymToKeycode dpy xK_Super_L
+               io $ grabKey dpy sym noModMask rootw False grabModeAsync grabModeAsync
+           , handleEventHook = handleEventHook c <+> Hint.eventHook }
