@@ -290,8 +290,5 @@ ensureWorkspaces = do
 randr c = c { startupHook = startupHook c >> selectRandrEvents >> updateScreens,
               handleEventHook = handleEventHook c <+> onOutputChanged updateScreens <+> onOutputChanged ensureWorkspaces }
 
-hint c = c { startupHook = startupHook c >> do
-               XConf { display = dpy, theRoot = rootw } <- ask
-               sym <- io $ keysymToKeycode dpy xK_Super_L
-               io $ grabKey dpy sym noModMask rootw False grabModeAsync grabModeAsync
+hint c = c { startupHook = startupHook c >> Hint.grabPress
            , handleEventHook = handleEventHook c <+> Hint.eventHook }

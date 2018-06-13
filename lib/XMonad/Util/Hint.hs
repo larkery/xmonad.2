@@ -10,6 +10,8 @@ import XMonad.Util.Timer
 import XMonad.Util.XUtils
 import XMonad.Util.Font
 import XMonad.Hooks.FadeInactive (setOpacity)
+import System.Time
+import System.Locale
 
 data Hint = Hint {
      _window :: [Window],
@@ -21,19 +23,23 @@ instance ExtensionClass Hint where
 
 startHintTimer :: X ()
 startHintTimer = do
-  id <- startTimer 0.4
+  id <- startTimer 0.25
   XS.modify $ \h -> h {_timer = Just id}
   return ()
 
 showScreenHint :: XMonadFont -> W.Screen WorkspaceId (Layout Window) Window ScreenId ScreenDetail -> X Window
 showScreenHint font s = withDisplay $ \dpy -> do
   let (Rectangle sx sy sw sh) = (screenRect $ W.screenDetail s)
-      r = (Rectangle ((fi sx) + (fi sw) `div` 4) ((fi sy) + (fi sh) `div` 4) ((fi sw) `div` 2) ((fi sh) `div` 2))
+      r = (Rectangle sx ((fi sy) + (fi sh) - 200) sw 200)
+--      r = (Rectangle ((fi sx) + (fi sw) `div` 4) ((fi sy) + (fi sh) `div` 4) ((fi sw) `div` 2) ((fi sh) `div` 2))
   win <- createNewWindow r Nothing "black" False
   gc <- io $ createGC dpy win
-  setOpacity win 0.6
+  setOpacity win 0.8
   showWindow win
-  printStringXMF dpy win font gc "black" "white" 10 40 (W.tag $ W.workspace s)
+  printStringXMF dpy win font gc "white" "black" 10 40 (W.tag $ W.workspace s)
+  cal <- io $(getClockTime >>= toCalendarTime)
+  let datestr = formatCalendarTime defaultTimeLocale "%a %b %d %H:%M" cal
+  printStringXMF dpy win font gc "white" "black" 10 80 datestr
   io $ freeGC dpy gc
   return win
   
@@ -66,7 +72,7 @@ eventHook e@(KeyEvent {}) = withDisplay $ \d -> do
   let isPress = et == keyPress && keysym == xK_Super_L
       isRelease = et == keyRelease && keysym == xK_Super_L
       isSuperPress = (et == keyPress || et == keyRelease) &&
-        ((es .&. mod4Mask) /= 0)
+        ((es .&. mod4Mask) /= 0) -- todo modifier keys shouldn't clear
 
   if | isPress -> startHintTimer
      | isRelease -> clearHint
@@ -96,3 +102,10 @@ eventHook e = do
 -- which means closing the window if it exists and clear
 -- timer if it exists
 -- on a timer event, we want to handle it if it is our timer
+
+grabPress :: X ()
+grabPress = do
+  XConf { display = dpy, theRoot = rootw } <- ask
+  sym <- io $ keysymToKeycode dpy xK_Super_L
+  io $ do grabKey dpy sym noModMask rootw False grabModeAsync grabModeAsync
+          grabKey dpy sym shiftMask rootw False grabModeAsync grabModeAsync
