@@ -36,17 +36,20 @@ instance Options (Choice a) (Action a) where
 
 matches s = isInfixOf s . (map toLower)
 starts s = (== s) . (map toLower) . (take (length s))
+pad s n
+  | length s >= n = take n s
+  | otherwise = s ++ (take (n - (length s)) $ repeat ' ')
 
 data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 
 instance Show NTWindow where
-  show (NTWindow {name = n, tag = t}) = "["++t++"] "++n
+  show (NTWindow {name = n, tag = t}) = (pad t 8)++"| "++n
 
 minT = "&"
 
 windowMenu cfg k = do
   let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }
-  window <- menu (addDown cfg {_width = 500}) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
+  window <- menu (addDown cfg {_width = 600}) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
     where getWindows s = do
             ws <- allWindows
@@ -101,6 +104,8 @@ workspaceMenu cfg key = do
         (W.workspace $ W.current ws) :
         (map W.workspace $ W.visible ws) ++
         (filter (isJust . W.stack) $ W.hidden ws)
+      visible = (map (W.tag . W.workspace) $ W.visible ws)
+      
       exists :: String -> Bool
       exists = flip elem existing
       ahistorical :: String -> Bool
@@ -108,12 +113,12 @@ workspaceMenu cfg key = do
 
       tags = (filter exists history) ++ (filter ahistorical existing)
 
-  command <- menu (addDown cfg) (findTag tags)
+  command <- menu (addDown cfg) (findTag visible tags)
   whenJust command $ \(C{_value = tag}, A{_action = a}) -> a tag
-  where findTag tags s = return $ (new tags s) ++ (map wrap $ filter (matches s) tags)
+  where findTag vis tags s = return $ (new tags s) ++ (map (wrap vis) $ filter (matches s) tags)
         new tags s = if s `elem` tags || s == "" then [] else
                        [(C { _value = s, _choiceLabel = "[new] " ++ s, _actions = [_create, _rename, _put, _shift] })]
-        wrap tag = C { _value = tag, _choiceLabel = tag, _actions = if tag == minT then [_shift] else [_view, _del, _put, _shift] }
+        wrap vis tag = C { _value = tag, _choiceLabel = if tag `elem` vis then "* " ++ tag else "  " ++ tag, _actions = if tag == minT then [_shift] else [_view, _del, _put, _shift] }
         _view = A {_actionLabel = "view", _action = windows . W.greedyView}
         _create = A {_actionLabel = "create", _action = addWorkspace}
         _put = A {_actionLabel = "go", _action = withFocused . putWindowToNew}

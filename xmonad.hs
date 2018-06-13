@@ -59,7 +59,7 @@ fg =  "#006699"
 bg = "#f6f6f6"
 nborder = "#555"
 
-cl c = c { _foreground = bg, _background = fg }
+cl c = c
 
 getSortByTag' = ((.) minTLast) <$> getSortByTag
   where minTLast [] = []

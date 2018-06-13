@@ -37,7 +37,7 @@ data MenuConfig a b = MenuConfig
 data ExitState = Select | Cancel | Continue deriving Eq
 
 instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
-  def = MenuConfig { _foreground = "#2d71b8", _background = "#f6f6f6", _font = "xft:Sans-12",
+  def = MenuConfig { _foreground = "white", _background = "black", _font = "xft:Monospace-12",
                      _keymap = [ ("C-g", quit),
                                  ("C-p", up), ("C-n", down),
                                  ("M-p", up), ("M-n", down),
@@ -57,7 +57,7 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
                      _rowLimit = 25,
                      _location = middleOfScreen,
                      _width = 400,
-                     _opacity = 0.9
+                     _opacity = 0.8
                    }
 
 middleOfScreen :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
