@@ -30,8 +30,7 @@ startHintTimer = do
 showScreenHint :: XMonadFont -> W.Screen WorkspaceId (Layout Window) Window ScreenId ScreenDetail -> X Window
 showScreenHint font s = withDisplay $ \dpy -> do
   let (Rectangle sx sy sw sh) = (screenRect $ W.screenDetail s)
-      r = (Rectangle sx ((fi sy) + (fi sh) - 200) sw 200)
---      r = (Rectangle ((fi sx) + (fi sw) `div` 4) ((fi sy) + (fi sh) `div` 4) ((fi sw) `div` 2) ((fi sh) `div` 2))
+      r = (Rectangle sx ((fi sy) + (fi sh) - 200) sw 100)
   win <- createNewWindow r Nothing "black" False
   gc <- io $ createGC dpy win
   setOpacity win 0.8
