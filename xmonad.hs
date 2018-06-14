@@ -291,4 +291,4 @@ randr c = c { startupHook = startupHook c >> selectRandrEvents >> updateScreens,
               handleEventHook = handleEventHook c <+> onOutputChanged updateScreens <+> onOutputChanged ensureWorkspaces }
 
 hint c = c { startupHook = startupHook c >> Hint.grabPress
-           , handleEventHook = handleEventHook c <+> Hint.eventHook }
+           , handleEventHook = handleEventHook c <+> (Hint.eventHook (Hint.content nonEmptyNames)) }
