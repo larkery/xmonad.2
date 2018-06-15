@@ -43,7 +43,6 @@ import qualified Data.Map.Strict as M
 import qualified XMonad.Actions.FlexibleManipulate as Flex
 import qualified XMonad.StackSet as W
 import XMonad.Layout.Renamed
-import XMonad.Hooks.UrgencyHook (focusUrgent)
 import XMonad.Layout.MultiToggle
 import XMonad.Layout.MultiToggle.Instances
 import qualified XMonad.Util.Stack as Z
@@ -117,7 +116,7 @@ mconfig =
     , focusedBorderColor = fg2
     , normalBorderColor = nborder
     , layoutHook = _layout
-    , workspaces = ["main", "mail"]
+    , workspaces = ["sys", "mail"]
     } `additionalKeysP` mkeys
     `additionalMouseBindings`
     [((mod4Mask, 1), \w -> do float <- isFloating w
@@ -167,7 +166,7 @@ mkeys =
 
   , ( "M-r", toggleFlip )
   , ( "M-z", sendT )
-  , ( "M-y", bringT )
+  , ( "M-y", bringMenu (cl def) minT "M-y" )
   , ( "M-<Return>", withMaster (const $ windows W.shiftMaster) (windows . W.focusWindow) >> warp )
 
   , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
@@ -183,7 +182,7 @@ mkeys =
   , ( "M-g", (selectWindowColors bg "darkorange") >>= (flip whenJust (windows . bringToMaster)) >> warp )
   , ( "M-a", (selectWindowColors bg "purple") >>= (flip whenJust swapFocused) >> warp )
   , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust killWindow) )
-  , ( "M-u", focusUrgent )
+  , ( "M-u", showUrgent )
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
   , ( "M-p", windows $ W.focusUp )
