@@ -30,6 +30,7 @@ data MenuConfig a b = MenuConfig
                  (Dimension, Dimension) ->
                  Maybe (Position, Position) ->
                  (Position, Position),
+    _postSelect :: Menu a b (),
     _width :: Int,
     _opacity :: Rational
   }
@@ -54,6 +55,7 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
                                  ("C-i", complete),
                                  ("M1-i", completeThis)
                                ],
+                     _postSelect = return (),
                      _rowLimit = 25,
                      _location = middleOfScreen,
                      _width = 400,
@@ -296,6 +298,11 @@ handleKeys = do
 -------- Menu actions for binding.
 --------------------------------------------------------------------------------
 
+doPostSelect :: Menu a b ()
+doPostSelect = do
+  postSelect <- gets (_postSelect . _config)
+  postSelect
+
 holdKey :: Menu a b ()
 holdKey = modify $ \s -> s { _holdingKey = True }
 
@@ -316,14 +323,19 @@ fixAction s@(MenuState {_action = acs, _choices = Just (W.Stack f _ _)}) =
 nop :: Menu a b ()
 nop = return ()
 
+cur :: Menu a b (Maybe a)
+cur = gets (getFocusZ . _choices)
+
 quit :: Menu a b ()
 quit = modify $ \s->s {_done = Cancel}
 
 up :: (Show b, Options a b) => Menu a b ()
-up = modify $ \s -> fixAction $ s { _choices = focusUpZ (_choices s) }
+up = do modify $ \s -> fixAction $ s { _choices = focusUpZ (_choices s) }
+        doPostSelect
 
 down :: (Show b, Options a b) => Menu a b ()
-down = modify $ \s -> fixAction $ s { _choices = focusDownZ (_choices s) }
+down = do modify $ \s -> fixAction $ s { _choices = focusDownZ (_choices s) }
+          doPostSelect
 
 select :: Menu a b ()
 select = modify $ \s->s{ _done = Select }
@@ -337,6 +349,7 @@ input f = do
   when (input' /= curInput) $ do
     choices' <- lift $ generator $ conc input'
     modify $ \s -> fixAction $ s { _choices = fromIndex choices' 0, _input = input' }
+    doPostSelect
 
 ins :: String -> Input -> Input
 ins [] st = st

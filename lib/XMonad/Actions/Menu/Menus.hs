@@ -1,13 +1,15 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types #-}
 
-module XMonad.Actions.Menu.Menus (windowMenu, commandMenu, workspaceMenu, actionMenu, passMenu, minT) where
+module XMonad.Actions.Menu.Menus (bringMenu, windowMenu, commandMenu, workspaceMenu, actionMenu, passMenu, minT) where
 
 import XMonad
 import XMonad.Actions.Menu hiding (_action)
 import XMonad.Util.NamedWindows
 import Data.List (isInfixOf, partition, (\\))
 import Data.Char (toLower)
-import Data.Maybe (isJust, fromMaybe)
+import Data.Maybe (isJust, fromMaybe, isNothing)
+import Control.Monad.State (lift)
+import Control.Monad (when)
 import XMonad.Prompt.Shell (getCommands)
 import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.WindowBringer (bringWindow)
@@ -78,6 +80,36 @@ windowMenu cfg k = do
 
           wrap :: NTWindow -> Choice NTWindow
           wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = if tag nw == minT then [_bring, _master] else [_focus, _bring, _master] }
+
+bringMenu cfg ws k = do
+  let pop = do thing <- cur
+               whenJust thing $ \w ->
+                 lift $ windows ((bringWindow (unName (_value w))) . (W.shift ws))
+
+  options <- allWindows ws
+  when (not $ null options) $ do
+    windows $ bringWindow (unName (head options))
+    window <- menu (cfg {_width = 600, _postSelect = pop, _keymap = (k, down >> holdKey):(_keymap cfg)}) (getWindows options) :: X (Maybe (Choice NamedWindow, Action NamedWindow))
+
+    when (isNothing window) $ windows (W.shift ws)
+  
+  return ()
+    where getWindows ws s = do
+            return $ filter (matches s . _choiceLabel) $ map wrap ws
+
+          wrap :: NamedWindow -> Choice NamedWindow
+          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions =
+                          [A {_actionLabel = "select",
+                               _action = const $ return ()}] }
+          
+          allWindows :: WorkspaceId -> X [NamedWindow]
+          allWindows t = do
+            ws <- gets windowset
+            let spaces = W.workspaces ws
+                space = head $ filter ((== t) . W.tag) spaces
+                wins = W.integrate' $ W.stack $ space
+            named <- mapM getName wins
+            return named
 
 commandMenu cfg = do
   allCommands <- io $ getCommands
