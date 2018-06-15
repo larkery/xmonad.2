@@ -64,12 +64,12 @@ windowMenu cfg k = do
           allWindows :: X [NTWindow]
           allWindows = do
             windowTags <- gets ((concatMap tagWindows) . W.workspaces . windowset)
-            history <- orderedWindows
-            let historyTags = map (fromMaybe "?" . (flip lookup windowTags)) history
-            mapM toNTWindow $ zip historyTags history
+            --history <- orderedWindows
+            --let historyTags = map (fromMaybe "?" . (flip lookup windowTags)) history
+            mapM toNTWindow $ windowTags --zip historyTags history
 
-          tagWindows :: W.Workspace i l a -> [(a, i)]
-          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map (flip (,) t) $ W.integrate' st
+          tagWindows :: W.Workspace i l a -> [(i, a)]
+          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map ((,) t) $ W.integrate' st
 
           _focus :: Action NTWindow
           _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (window nw)}
