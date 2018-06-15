@@ -89,7 +89,7 @@ bringMenu cfg ws k = do
   options <- allWindows ws
   when (not $ null options) $ do
     windows $ bringWindow (unName (head options))
-    window <- menu (cfg {_width = 600, _postSelect = pop, _keymap = (k, down >> holdKey):(_keymap cfg)}) (getWindows options) :: X (Maybe (Choice NamedWindow, Action NamedWindow))
+    window <- menu (cfg {_width = 600, _postSelect = pop, _keymap = ("M-<Escape>", quit):("M-z", quit):(k, down >> holdKey):(_keymap cfg)}) (getWindows options) :: X (Maybe (Choice NamedWindow, Action NamedWindow))
 
     when (isNothing window) $ windows (W.shift ws)
   
