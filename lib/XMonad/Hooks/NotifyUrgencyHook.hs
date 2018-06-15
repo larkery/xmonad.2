@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
-module XMonad.Hooks.NotifyUrgencyHook (notifyUrgent, setBorder) where
+module XMonad.Hooks.NotifyUrgencyHook (showUrgent, notifyUrgent, setBorder) where
 
 import XMonad
 import Control.Monad
@@ -7,6 +7,7 @@ import qualified XMonad.StackSet as W
 import XMonad.Util.NamedWindows
 import XMonad.Hooks.UrgencyHook
 import XMonad.Util.Run
+import XMonad.Actions.WindowBringer
 
 data LibNotifyUrgencyHook = LibNotifyUrgencyHook deriving (Read, Show)
 instance UrgencyHook LibNotifyUrgencyHook where
@@ -14,10 +15,8 @@ instance UrgencyHook LibNotifyUrgencyHook where
       name <- getName w
       wset <- gets windowset
       let Just idx = W.findTag w wset
-      setBorder "gold" w
-      --withDisplay $ \d -> io $ setWindowBorderWidth d w 2
-      when (not $ idx `elem` (map (W.tag . W.workspace) $ (W.current wset):(W.visible wset))) $ do
-        safeSpawn "notify-send" [(show name) ++ " urgent on " ++ idx, "-a", "xmonad"]
+      setBorder "red" w
+      safeSpawn "notify-send" ["-u", "critical", (show name) ++ " urgent on " ++ idx, "-a", "xmonad"]
 
 setBorder c w = withDisplay $ \d -> io $ do
   g <- initColor d c
@@ -26,3 +25,14 @@ setBorder c w = withDisplay $ \d -> io $ do
 notifyUrgent conf = withUrgencyHookC hook uc conf
   where hook = LibNotifyUrgencyHook
         uc = urgencyConfig { suppressWhen = Focused , remindWhen = Every 120 }
+
+showUrgent = do
+  us <- readUrgents
+  case us of
+    [] -> return ()
+    x:_ -> do
+      t <- gets ((W.findTag x) . windowset)
+      
+      whenJust t $ \t -> windows $ case t of
+        "&" -> bringWindow x
+        _ -> W.focusWindow x
