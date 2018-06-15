@@ -14,8 +14,10 @@ import System.Time
 import System.Locale
 import qualified Debug.Trace as D
 
+import XMonad.Util.NamedWindows (getName)
+import Data.Traversable (traverse)
 import Data.Maybe
-import Data.List (intersperse, intersect)
+import Data.List (findIndex, intersperse, intersect)
 
 data CString = Plain String | Styled String String String
 
@@ -51,18 +53,41 @@ content nonEmptyNames s = do
   mainTag <- (W.tag . W.workspace) <$> gets (W.current . windowset)
   tags <- nonEmptyNames
   cal <- io $(getClockTime >>= toCalendarTime)
-  let datestr = formatCalendarTime defaultTimeLocale "%a %b %d %H:%M" cal
+
+--  wTitle <- traverse (fmap show . getName) (fmap W.focus $ W.stack $ W.workspace s)
+  
+  let number n tag = (show n) ++ ":" ++ tag
+
+      datestr = formatCalendarTime defaultTimeLocale "%a %b %d %H:%M" cal
+
       sTag = (W.tag $ W.workspace s)
+
       isCurrent = sTag == mainTag
+
       dot = Plain " » "
-      here = [Plain $ description $ W.layout $ W.workspace $ s, dot, Styled sTag "white" "red"]
+
+      layoutS = description $ W.layout $ W.workspace $ s
+      wCount = length $ W.integrate' $ W.stack $ W.workspace s
+
+      layout | layoutS == "Full" && wCount > 1 = Styled (layoutS ++ " [" ++ show wCount ++ "]") "white" "purple"
+             | otherwise = Plain layoutS
+  
+      thisTagIndex = 1 + (fromJust $ findIndex (== sTag) tags)
+      thisTag = Styled (number thisTagIndex sTag) "white" "red" 
+
+      here = [thisTag, dot, layout]
+      
       workspaces = intersperse (Plain " ") $
                    (flip map (filter ((`elem` hiddenTags). fst) (zip tags [1..])) $
-                     \(tag, n) -> Plain $ if tag == "&" then tag else (show n ++ ":" ++ tag))
+                     \(tag, n) -> Plain $ if tag == "&" then tag else (number n tag))
+                   
+--      windowTitle = maybeToList $ flip fmap wTitle $ Plain
+--      windowLine = [Line "xft:Sans-16" windowTitle []]
 
   if isCurrent
-    then return $ HintContent "black" [Line {_font = "xft:Sans-24", _left = here ++ dot:workspaces, _right = [Plain datestr]}]
-    else return $ HintContent "black" [Line {_font = "xft:Sans-20", _left = here, _right = [Plain datestr]}]
+    then return $ HintContent (if isCurrent then "#003b3b" else "black") $ 
+         [Line "xft:Sans-24" (here ++ dot:workspaces) [Plain datestr]]
+    else return $ HintContent "black" $ [Line "xft:Sans-20" here [Plain datestr]]
 
 startHintTimer :: X ()
 startHintTimer = do
@@ -75,11 +100,10 @@ displayContent (screen, content) = withDisplay $ \dpy -> do
   let fontNames = map _font $ _lines content 
 
   fonts <- mapM initXMF fontNames
-  extents <- map (uncurry (+)) <$> mapM (flip textExtentsXMF " ") fonts
-  let height = sum extents
+  extents <- mapM (flip textExtentsXMF " ") fonts
+  let height = sum $ map (uncurry (+)) extents
       (Rectangle sx sy sw sh) = (screenRect $ W.screenDetail screen)
       r = (Rectangle sx ((fi sy) + (fi sh) - height) sw (fi height))
-      
 
   win <- createNewWindow r Nothing (_bg content) False
   gc <- io $ createGC dpy win
@@ -90,16 +114,18 @@ displayContent (screen, content) = withDisplay $ \dpy -> do
   setOpacity win 0.8
   showWindow win
 
-  (flip mapM_) (zip (_lines content) (zip fonts (drop 1 (scanl (+) 0 extents)))) $
+  let tops = map (uncurry (-)) $ zip (drop 1 $ scanl (+) 0 $ map (uncurry (+)) extents) (map snd extents)
+  
+  (flip mapM_) (zip (_lines content) (zip fonts tops)) $
     \(line, (font, top)) -> do
       leftWidths <- mapM (textWidthXMF dpy font) (map text (_left line))
       rightWidths <- mapM (textWidthXMF dpy font) (map text (_right line))
       let lefts = scanl (+) 0 leftWidths
           rights = drop 1 $ scanl (-) (fi sw) rightWidths
       (flip mapM_) (zip lefts (_left line)) $ \(left, t) -> do
-        printCString font left (top - 8) t
+        printCString font left top t
       (flip mapM_ ) (zip rights (_right line)) $ \(left, t) -> do
-        printCString font left (top - 8) t
+        printCString font left top t
         
       return ()
     
