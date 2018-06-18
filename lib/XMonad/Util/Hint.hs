@@ -13,7 +13,11 @@ import XMonad.Hooks.FadeInactive (setOpacity)
 import System.Time
 import System.Locale
 import qualified Debug.Trace as D
+import Control.Monad (when)
+import Graphics.X11.Xlib.Window (moveResizeWindow)
+import XMonad.Util.Loggers (logCmd)
 
+import XMonad.Hooks.UrgencyHook (readUrgents)
 import XMonad.Util.NamedWindows (getName)
 import Data.Traversable (traverse)
 import Data.Maybe
@@ -22,12 +26,12 @@ import Data.List (findIndex, intersperse, intersect)
 data CString = Plain String | Styled String String String
 
 text (Plain s) = s
-text (Styled s _ _) = s
+text (Styled _ _ s) = s
 
-fg (Plain _) = "white"
-fg (Styled _ f _) = f
+fg (Plain _) f = f
+fg (Styled f _ _) f0 = if null f then f0 else f
 bg (Plain _) c = c
-bg (Styled _ _ b) _ = b
+bg (Styled _ b _) b0 = if null b then b0 else b
 
 type XScreen = W.Screen WorkspaceId (Layout Window) Window ScreenId ScreenDetail
 
@@ -36,30 +40,44 @@ data Line = Line {_font :: String, _left :: [CString], _right :: [CString]}
 data HintContent = HintContent
   {
     _bg :: String,
+    _fg :: String,
     _lines :: [Line]
   }
 
 data Hint = Hint {
-     _window :: [Window],
+     _window :: [(ScreenId, Window)],
      _timer :: Maybe TimerId
 } deriving (Read, Show, Typeable)
 
 instance ExtensionClass Hint where
     initialValue = Hint [] Nothing
 
+clock :: X CString
+clock = do
+  cal <- io $(getClockTime >>= toCalendarTime)
+  return $ Plain $ formatCalendarTime defaultTimeLocale "%a %b %d %H:%M" cal
+
+battery :: X CString
+battery = do
+  mbat <- logCmd "~/.xmonad/statusbar battery"
+  return $ Plain $ "⚡" ++ fromMaybe "" mbat
+
 content :: X [WorkspaceId] -> XScreen -> X HintContent
 content nonEmptyNames s = do
   hiddenTags <- map W.tag <$> gets (W.hidden . windowset)
   mainTag <- (W.tag . W.workspace) <$> gets (W.current . windowset)
   tags <- nonEmptyNames
-  cal <- io $(getClockTime >>= toCalendarTime)
+  time <- clock
+  batt <- battery
 
---  wTitle <- traverse (fmap show . getName) (fmap W.focus $ W.stack $ W.workspace s)
+  urgents <- readUrgents
+  wTitle <- traverse (fmap show . getName) (if null urgents
+                                             then (fmap W.focus $ W.stack $ W.workspace s)
+                                             else Just $ head urgents)
   
-  let number n tag = (show n) ++ ":" ++ tag
-
-      datestr = formatCalendarTime defaultTimeLocale "%a %b %d %H:%M" cal
-
+  let line n l r = Line ("xft:Sans-" ++ show n) l r
+  
+      number n tag = (show n) ++ ":" ++ tag
       sTag = (W.tag $ W.workspace s)
 
       isCurrent = sTag == mainTag
@@ -69,11 +87,11 @@ content nonEmptyNames s = do
       layoutS = description $ W.layout $ W.workspace $ s
       wCount = length $ W.integrate' $ W.stack $ W.workspace s
 
-      layout | layoutS == "Full" && wCount > 1 = Styled (layoutS ++ " [" ++ show wCount ++ "]") "white" "purple"
+      layout | layoutS == "Full" && wCount > 1 = Styled "orange" "" (layoutS ++ " - " ++ show wCount)
              | otherwise = Plain layoutS
   
       thisTagIndex = 1 + (fromJust $ findIndex (== sTag) tags)
-      thisTag = Styled (number thisTagIndex sTag) "white" "red" 
+      thisTag = Styled "cyan" "" (number thisTagIndex sTag)
 
       here = [thisTag, dot, layout]
       
@@ -81,13 +99,14 @@ content nonEmptyNames s = do
                    (flip map (filter ((`elem` hiddenTags). fst) (zip tags [1..])) $
                      \(tag, n) -> Plain $ if tag == "&" then tag else (number n tag))
                    
---      windowTitle = maybeToList $ flip fmap wTitle $ Plain
---      windowLine = [Line "xft:Sans-16" windowTitle []]
+      windowTitle
+        | null urgents = map Plain $ maybeToList wTitle
+        | otherwise = map (Styled "white" "red") $ maybeToList wTitle
 
   if isCurrent
-    then return $ HintContent (if isCurrent then "#003b3b" else "black") $ 
-         [Line "xft:Sans-24" (here ++ dot:workspaces) [Plain datestr]]
-    else return $ HintContent "black" $ [Line "xft:Sans-20" here [Plain datestr]]
+    then return $ HintContent "black" "white" $
+         [line 24 (here ++ dot:workspaces) [time], line 16 windowTitle [batt]]
+    else return $ HintContent "grey25" "white" $ [line 20 here [time]]
 
 startHintTimer :: X ()
 startHintTimer = do
@@ -95,24 +114,49 @@ startHintTimer = do
   XS.modify $ \h -> h {_timer = Just id}
   return ()
 
-displayContent :: (XScreen, HintContent) -> X Window
-displayContent (screen, content) = withDisplay $ \dpy -> do
-  let fontNames = map _font $ _lines content 
+createScreenWindow :: XScreen -> X Window
+createScreenWindow screen = do
+  let height = 1
+      (Rectangle sx sy sw sh) = (screenRect $ W.screenDetail screen)
+  XConf {display = dpy, theRoot = rw} <- ask
+  win <- io $ do
+      let s = defaultScreenOfDisplay dpy
+          visual = defaultVisualOfScreen s
+          attrmask = cWOverrideRedirect
+      allocaSetWindowAttributes $
+         \attributes -> do
+           set_background_pixel attributes 0
+           set_override_redirect attributes True
+           createWindow dpy rw sx ((fi sy) + (fi sh) - height) sw 1 0 (defaultDepthOfScreen s)
+                        inputOutput visual attrmask attributes
+  
+  setOpacity win 0.8
+  showWindow win
+  return win
+
+displayContent :: (XScreen, HintContent) -> Window -> X ()
+displayContent (screen, content) win = withDisplay $ \dpy -> do
+  let fontNames = map _font $ _lines content
+      fgc = _fg content
+      bgc = _bg content
 
   fonts <- mapM initXMF fontNames
   extents <- mapM (flip textExtentsXMF " ") fonts
   let height = sum $ map (uncurry (+)) extents
-      (Rectangle sx sy sw sh) = (screenRect $ W.screenDetail screen)
-      r = (Rectangle sx ((fi sy) + (fi sh) - height) sw (fi height))
+      (Rectangle sx sy sw sh) = screenRect $ W.screenDetail screen
+  
+  io $ moveResizeWindow dpy win sx sy sw (fi height)
 
-  win <- createNewWindow r Nothing (_bg content) False
+  pixmap <- io $ createPixmap dpy win sw (fi height) (defaultDepthOfScreen (defaultScreenOfDisplay dpy))
+  -- clear rectangle
   gc <- io $ createGC dpy win
 
+  io $ do pix <- initColor dpy bgc
+          setForeground dpy gc (fromJust pix)
+          fillRectangle dpy pixmap gc 0 0 sw (fi height)
+
   let printCString font left top cstring =
-        printStringXMF dpy win font gc (fg cstring) (bg cstring (_bg content)) (fi left) (fi top) (text cstring)
-  
-  setOpacity win 0.8
-  showWindow win
+        printStringXMF dpy pixmap font gc (fg cstring fgc) (bg cstring bgc) (fi left) (fi top) (text cstring)
 
   let tops = map (uncurry (-)) $ zip (drop 1 $ scanl (+) 0 $ map (uncurry (+)) extents) (map snd extents)
   
@@ -126,33 +170,42 @@ displayContent (screen, content) = withDisplay $ \dpy -> do
         printCString font left top t
       (flip mapM_ ) (zip rights (_right line)) $ \(left, t) -> do
         printCString font left top t
-        
-      return ()
-    
-  
-  io $ freeGC dpy gc
+
+  io $ do pix <- initColor dpy fgc
+          setForeground dpy gc (fromJust pix)
+          drawLine dpy pixmap gc 0 (fi height - 1) (fi sw) (fi height - 1)
+
+  io $ do copyArea dpy pixmap win gc 0 0 sw (fi height) 0 0
+          freeGC dpy gc
+          freePixmap dpy pixmap
+          
   mapM_ releaseXMF fonts
 
-  return win
-  
 showHint :: (XScreen -> X HintContent) -> X ()
 showHint content = do
-  clearHint
   ws <- gets windowset
+  (Hint {_window = windows}) <- XS.get
   
   let screens = (W.current ws):(W.visible ws)
-  content <- mapM content screens
-  windows <- mapM (displayContent) (zip screens content)
-  
-  XS.put $ Hint windows Nothing
-  return ()
+      mWindows = map (\s -> (s, lookup (W.screen s) windows)) screens
 
+  nWindows <- flip mapM mWindows $ \(s, mwin) ->
+    case mwin of
+      Just w -> return $ (W.screen s, w)
+      Nothing -> do w <- createScreenWindow s
+                    return $ (W.screen s, w)
+  
+  XS.put $ Hint nWindows Nothing
+  
+  content <- mapM content screens
+  flip mapM_ (zip content (zip nWindows screens)) $ \(c, ((sid, win), scr)) -> displayContent (scr, c) win
+  
 clearHint :: X ()
 clearHint = do
   (Hint {_window = mwindow}) <- XS.get
-  mapM_ deleteWindow mwindow
+  mapM_ deleteWindow (map snd mwindow)
   XS.put $ Hint [] Nothing
-  return ()
+  grabPress
 
 -- this is a bit wrong, if we do a blocking thing
 -- we should probably check the key state directly somehow
@@ -167,9 +220,9 @@ eventHook _ e@(KeyEvent {}) = withDisplay $ \d -> do
       isSuperPress = (et == keyPress || et == keyRelease) &&
         ((es .&. mod4Mask) /= 0) -- todo modifier keys shouldn't clear
 
-  if | isPress -> startHintTimer
-     | isRelease -> clearHint
-     | isSuperPress -> clearHint
+  if | isPress ->  startHintTimer
+     | isRelease ->  clearHint
+     | isSuperPress ->  clearHint
      | otherwise -> return ()
 
   return (All True)
@@ -187,6 +240,10 @@ eventHook c e = do
   whenJust mtimer $ \timer -> do
      handleTimer timer e (showHint c >> return Nothing)
      return ()
+
+  when (ev_event_type e == expose) $ do
+    (Hint {_window = w}) <- XS.get
+    when (not $ null w) $ showHint c
        
   return (All True)
 

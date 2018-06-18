@@ -16,7 +16,7 @@ instance UrgencyHook LibNotifyUrgencyHook where
       wset <- gets windowset
       let Just idx = W.findTag w wset
       setBorder "red" w
-      safeSpawn "notify-send" ["-u", "critical", (show name) ++ " urgent on " ++ idx, "-a", "xmonad"]
+      safeSpawn "notify-send" [(show name) ++ " urgent on " ++ idx, "-a", "xmonad"]
 
 setBorder c w = withDisplay $ \d -> io $ do
   g <- initColor d c
@@ -24,7 +24,7 @@ setBorder c w = withDisplay $ \d -> io $ do
 
 notifyUrgent conf = withUrgencyHookC hook uc conf
   where hook = LibNotifyUrgencyHook
-        uc = urgencyConfig { suppressWhen = Focused , remindWhen = Every 120 }
+        uc = urgencyConfig { suppressWhen = Focused }
 
 showUrgent = do
   us <- readUrgents

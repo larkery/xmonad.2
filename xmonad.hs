@@ -14,6 +14,7 @@ import Data.Maybe
 import Data.List ( (\\), intersect, delete )
 import XMonad.Util.WorkspaceCompare ( getSortByTag )
 import XMonad.Hooks.NotifyUrgencyHook
+import XMonad.Hooks.UrgencyHook (clearUrgents)
 import XMonad.Actions.RotSlaves
 import XMonad.Layout.AdjustableTall
 import XMonad.Hooks.ManageHelpers
@@ -183,6 +184,7 @@ mkeys =
   , ( "M-a", (selectWindowColors bg "purple") >>= (flip whenJust swapFocused) >> warp )
   , ( "M-S-k", (selectWindowColors bg "red") >>= (flip whenJust killWindow) )
   , ( "M-u", showUrgent )
+  , ("M-S-u", clearUrgents)
   , ( "M-m", withMaster (windows . W.focusWindow) (windows . W.focusWindow) >> warp )
 
   , ( "M-p", windows $ W.focusUp )

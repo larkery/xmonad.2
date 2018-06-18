@@ -1,0 +1,17 @@
+#!/usr/bin/env zsh
+
+case $1 in
+
+    battery)
+        N=6
+        source /sys/class/power_supply/BAT0/uevent
+        P=$(( 1 + N * POWER_SUPPLY_ENERGY_NOW / POWER_SUPPLY_ENERGY_FULL ))
+        PC=$(( 100 * POWER_SUPPLY_ENERGY_NOW / POWER_SUPPLY_ENERGY_FULL ))
+        printf "$PC %% "
+        repeat $P printf "█"
+        repeat $(( N - P )) printf "░"
+        printf "\n"
+    ;;
+    *)
+       
+esac

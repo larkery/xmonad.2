@@ -59,7 +59,7 @@ instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
                      _rowLimit = 25,
                      _location = middleOfScreen,
                      _width = 400,
-                     _opacity = 0.8
+                     _opacity = 0.9
                    }
 
 middleOfScreen :: Rectangle -> (Dimension, Dimension) -> Maybe (Position, Position) -> (Position, Position)
