@@ -119,16 +119,7 @@ createScreenWindow screen = do
   let height = 1
       (Rectangle sx sy sw sh) = (screenRect $ W.screenDetail screen)
   XConf {display = dpy, theRoot = rw} <- ask
-  win <- io $ do
-      let s = defaultScreenOfDisplay dpy
-          visual = defaultVisualOfScreen s
-          attrmask = cWOverrideRedirect
-      allocaSetWindowAttributes $
-         \attributes -> do
-           set_background_pixel attributes 0
-           set_override_redirect attributes True
-           createWindow dpy rw sx ((fi sy) + (fi sh) - height) sw 1 0 (defaultDepthOfScreen s)
-                        inputOutput visual attrmask attributes
+  win <- createNewWindow (Rectangle sx (fi sy + fi sh - 1) sw 1) Nothing "black" False
   
   setOpacity win 0.8
   showWindow win
