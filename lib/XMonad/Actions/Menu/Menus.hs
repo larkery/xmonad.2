@@ -45,7 +45,7 @@ pad s n
 data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 
 instance Show NTWindow where
-  show (NTWindow {name = n, tag = t}) = (pad t 8)++"| "++n
+  show (NTWindow {name = n, tag = t}) = t++" | "++n
 
 minT = "&"
 
@@ -57,16 +57,17 @@ windowMenu cfg k = do
             ws <- allWindows
             return $ filter (matches s . _choiceLabel) $ map wrap ws
 
-          toNTWindow :: (String, Window) -> X NTWindow
-          toNTWindow (t, w) = do n <- getName w
-                                 return $ NTWindow w (show n) t
+          toNTWindow :: Int -> (String, Window) -> X NTWindow
+          toNTWindow p (t, w) = do n <- getName w
+                                   return $ NTWindow w (show n) (pad t p)
 
           allWindows :: X [NTWindow]
           allWindows = do
             windowTags <- gets ((concatMap tagWindows) . W.workspaces . windowset)
             history <- orderedWindows
+            p <- gets (maximum . (map (length . W.tag)) . W.workspaces .windowset)
             let historyTags = map (fromMaybe "?" . (flip lookup windowTags)) history
-            mapM toNTWindow $ zip historyTags history
+            mapM (toNTWindow p) $ zip historyTags history
 
           tagWindows :: W.Workspace i l a -> [(a, i)]
           tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map (flip (,) t) $ W.integrate' st
