@@ -21,6 +21,7 @@ import XMonad.Hooks.History
 import XMonad.Hooks.WorkspaceHistory
 import XMonad.Hooks.NotifyUrgencyHook (setBorder)
 import XMonad.Actions.SpawnOn
+import Data.IORef
 
 import qualified XMonad.StackSet as W
 
@@ -45,13 +46,29 @@ pad s n
 data NTWindow = NTWindow {window :: Window,  name :: String, tag :: String}
 
 instance Show NTWindow where
-  show (NTWindow {name = n, tag = t}) = t++" | "++n
+  show = name
 
 minT = "&"
 
 windowMenu cfg k = do
+  --lastHighlight <- io $ newIORef Nothing
+  
+  -- let --highlightWin :: Choice NTWindow -> X ()
+  --     --highlightWin w = setBorder "cyan" (window (_value w))
+  --     --unhighlightWin w = setBorder "#555" (window (_value w))
+      
+  --   greedyFocusWindow w ws = W.focusWindow w $ W.greedyView
+  --                            (fromMaybe (W.currentTag ws) $ W.findTag w ws) ws
+  --   doHighlight = do win <- cur
+  --                    lift $ whenJust win $ \win -> windows (greedyFocusWindow (window (_value win)))
+  
   let addDown c = c { _keymap = (k, down >> holdKey):(_keymap c) }
-  window <- menu (addDown cfg {_width = 600}) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
+  window <- menu (addDown cfg {_width = 600 -- , _postSelect = doHighlight
+                              }) getWindows :: X (Maybe (Choice NTWindow, Action NTWindow))
+
+--  last <- io $ readIORef lastHighlight
+--  whenJust last $ unhighlightWin
+                       
   whenJust window $ \(C {_value = w}, A {_action = a}) -> a w
     where getWindows s = do
             ws <- allWindows
@@ -59,7 +76,7 @@ windowMenu cfg k = do
 
           toNTWindow :: Int -> (String, Window) -> X NTWindow
           toNTWindow p (t, w) = do n <- getName w
-                                   return $ NTWindow w (show n) (pad t p)
+                                   return $ NTWindow w ((pad t p) ++ " | " ++ (show n)) t
 
           allWindows :: X [NTWindow]
           allWindows = do
