@@ -175,6 +175,7 @@ mkeys =
   , ( "<XF86AudioMute>", spawn "pamixer -t" )
   , ( "<XF86MonBrightnessUp>", spawn "xbacklight -inc 10" )
   , ( "<XF86MonBrightnessDown>", spawn "xbacklight -dec 10" )
+  , ( "<XF86Launch1>", spawn "touchpad" )
 
   , ( "M-o", nextScreen >> warp )
   , ( "M-n", windows $ W.focusDown )

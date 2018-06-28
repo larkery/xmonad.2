@@ -38,7 +38,7 @@ data MenuConfig a b = MenuConfig
 data ExitState = Select | Cancel | Continue deriving Eq
 
 instance (Show a, Show b, Options a b) => Default (MenuConfig a b) where
-  def = MenuConfig { _foreground = "white", _background = "black", _font = "xft:Monospace-12",
+  def = MenuConfig { _foreground = "white", _background = "#7a378b", _font = "xft:Monospace-12",
                      _keymap = [ ("C-g", quit),
                                  ("C-p", up), ("C-n", down),
                                  ("M-p", up), ("M-n", down),
@@ -207,7 +207,7 @@ render = do
 
   let inputHeight = (fst inputHeights + snd inputHeights)
       actionsHeight = (fst actionsHeights + snd actionsHeights)
-      height = 2 + sum heights + max inputHeight actionsHeight
+      height = (if (hasInput || hasActions) then 4 else 1) + sum heights + (max inputHeight actionsHeight)
       width = fi width'
       topRow = 1 + max inputHeight actionsHeight
 
@@ -230,7 +230,7 @@ render = do
         -- paint bars on the sides in case it was too big
         return $ y + e1 + e2
 
-  lift $ paintWindow pixmap width (fi height) 1 bgColor fgColor
+  lift $ paintWindow pixmap width (fi height) 0 bgColor fgColor
   when (hasInput || hasActions) $ do
     io $ paintBox 1 1 (width - 2) (fi inputHeight) bgColor
     when hasInput $ do
@@ -243,25 +243,28 @@ render = do
             w <- textWidthXMF disp font s
             printStringXMF disp pixmap font gc fg bg (x - fi w) y0 s
             return $ x - ((fi w) + 4)
-      foldM_ printAction (fi width) $ reverse $ toTags actionNamesZ
+      foldM_ printAction (fi $ width - 1) $ reverse $ toTags actionNamesZ
 
-  foldM_ printChoice topRow $ toTags choiceNamesZ
+  foldM_ printChoice ((if (hasInput || hasActions) then 2 else 0) + topRow) $ toTags choiceNamesZ
 
   let (wx, wy) = loc screenRectangle (fi width, fi height) lastCoords
 
   modify $ \s->s{_lastCoords = Just (wx, wy)}
 
-  io $ do color fgColor >>= setForeground disp gc
-          drawLine disp pixmap gc (fi width - 1) 0 (fi width - 1) (fi height)
+  io $ do color bgColor >>= setForeground disp gc
+          drawLine disp pixmap gc (fi width + 1) 0 (fi width + 1) (fi height)
+          color fgColor >>= setForeground disp gc
           when (hasActions || hasInput) $
             drawLine disp pixmap gc 0 topRow (fi width) topRow
 
-          moveResizeWindow disp win wx wy width (fi height)
+          moveResizeWindow disp win (wx - 1) (wy - 1) (2 + width) (fi $ 2 + height)
 
-          color bgColor >>= setForeground disp gc
-          drawRectangle disp pixmap gc 0 0 (width - 1) (fi height - 1)
-
-          copyArea disp pixmap win gc 0 0 (fi width) (fi height) 0 0
+--          color bgColor >>= setForeground disp gc
+--          fillRectangle disp win gc 0 0 (2 + width) (fi $ 2 + height)
+          color fgColor >>= setForeground disp gc
+          drawRectangle disp win gc 0 0 (width + 1) (fi $ height + 1)
+          
+          copyArea disp pixmap win gc 0 0 (fi width) (fi height) 1 1
           freePixmap disp pixmap
 
   return ()

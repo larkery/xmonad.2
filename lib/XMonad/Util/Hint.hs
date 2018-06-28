@@ -57,10 +57,24 @@ clock = do
   cal <- io $(getClockTime >>= toCalendarTime)
   return $ Plain $ formatCalendarTime defaultTimeLocale "%a %b %d %H:%M" cal
 
+wlan :: X CString
+wlan = do
+  mwi <- logCmd "iwgetid -r"
+  return $ Plain $ fromMaybe "" mwi
+
 battery :: X CString
 battery = do
   mbat <- logCmd "~/.xmonad/statusbar battery"
-  return $ Plain $ "⚡" ++ fromMaybe "" mbat
+  let h:_ = words $ fromMaybe "" mbat
+      hp :: Int
+      hp = read h
+      colr | hp < 10 = "red"
+           | hp < 15 = "orangered"
+           | hp < 30 = "orange"
+           | hp < 50 = "yellow"
+           | hp < 75 = "chartreuse"
+           | otherwise = "green"
+  return $ Styled colr "" $ "⚡" ++ fromMaybe "" mbat
 
 content :: X [WorkspaceId] -> XScreen -> X HintContent
 content nonEmptyNames s = do
@@ -69,6 +83,7 @@ content nonEmptyNames s = do
   tags <- nonEmptyNames
   time <- clock
   batt <- battery
+  wi <- wlan
 
   urgents <- readUrgents
   wTitle <- traverse (fmap show . getName) (if null urgents
@@ -82,7 +97,7 @@ content nonEmptyNames s = do
 
       isCurrent = sTag == mainTag
 
-      dot = Plain " » "
+      dot = " § "
 
       layoutS = description $ W.layout $ W.workspace $ s
       wCount = length $ W.integrate' $ W.stack $ W.workspace s
@@ -93,9 +108,11 @@ content nonEmptyNames s = do
       thisTagIndex = 1 + (fromJust $ findIndex (== sTag) tags)
       thisTag = Styled "cyan" "" (number thisTagIndex sTag)
 
-      here = [thisTag, dot, layout]
+      here = bits dot [thisTag, layout]
+
+      bits sep xs = intersperse (Plain sep) $ filter ((/= "") . text) xs
       
-      workspaces = intersperse (Plain " ") $
+      workspaces = bits " " $
                    (flip map (filter ((`elem` hiddenTags). fst) (zip tags [1..])) $
                      \(tag, n) -> Plain $ if tag == "&" then tag else (number n tag))
                    
@@ -105,7 +122,8 @@ content nonEmptyNames s = do
 
   if isCurrent
     then return $ HintContent "black" "white" $
-         [line 24 (here ++ dot:workspaces) [time], line 16 windowTitle [batt]]
+         [line 24 (if null workspaces then here else (here ++ (Plain dot):workspaces)) [time],
+          line 16 windowTitle (bits dot [batt, wi])]
     else return $ HintContent "grey25" "white" $ [line 20 here [time]]
 
 startHintTimer :: X ()

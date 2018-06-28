@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 case $1 in
-
+    
     battery)
         N=6
         source /sys/class/power_supply/BAT0/uevent
