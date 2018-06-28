@@ -103,7 +103,7 @@ content nonEmptyNames s = do
 
       isCurrent = sTag == mainTag
 
-      dot = " § "
+      dot = " · "
 
       layoutS = description $ W.layout $ W.workspace $ s
       wCount = length $ W.integrate' $ W.stack $ W.workspace s
