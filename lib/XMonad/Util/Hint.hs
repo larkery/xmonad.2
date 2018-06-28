@@ -62,6 +62,11 @@ wlan = do
   mwi <- logCmd "iwgetid -r"
   return $ Plain $ fromMaybe "" mwi
 
+mute :: X CString
+mute = do
+  mmu <- maybe False (== "true") <$> logCmd "pamixer --get-mute"
+  return $ Plain $ if mmu then "mute" else ""
+    
 battery :: X CString
 battery = do
   mbat <- logCmd "~/.xmonad/statusbar battery"
@@ -84,6 +89,7 @@ content nonEmptyNames s = do
   time <- clock
   batt <- battery
   wi <- wlan
+  mu <- mute
 
   urgents <- readUrgents
   wTitle <- traverse (fmap show . getName) (if null urgents
@@ -123,7 +129,7 @@ content nonEmptyNames s = do
   if isCurrent
     then return $ HintContent "black" "white" $
          [line 24 (if null workspaces then here else (here ++ (Plain dot):workspaces)) [time],
-          line 16 windowTitle (bits dot [batt, wi])]
+          line 16 windowTitle (bits dot [batt, mu, wi])]
     else return $ HintContent "grey25" "white" $ [line 20 here [time]]
 
 startHintTimer :: X ()
