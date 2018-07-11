@@ -54,12 +54,12 @@ import qualified Debug.Trace as D
 
 main = xmonad mconfig
 
-fg2 = "#777766"
+fg2 = "magenta"
 fg =  "#006699"
 bg = "#f6f6f6"
 nborder = "#555"
 
-cl c = c
+cl c = c {_background = "darkmagenta"}
 
 getSortByTag' = ((.) minTLast) <$> getSortByTag
   where minTLast [] = []
@@ -199,7 +199,6 @@ mkeys =
   , ("M-S-o", shiftNextScreen)
   , ("M-=", growTileVertically (1/4))
   , ("M--", growTileVertically (-1/4))
-  , ("M-/", spawn "notify-send \"$(date)\"")
 
   , ("M-S-/", spawn "notify-send \"Check mail\"; VERBOSE=1 notmuch new")
   ] ++

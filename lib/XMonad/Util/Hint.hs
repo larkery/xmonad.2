@@ -129,7 +129,7 @@ content nonEmptyNames s = do
   if isCurrent
     then return $ HintContent "black" "white" $
          [line 24 (if null workspaces then here else (here ++ (Plain dot):workspaces)) [time],
-          line 16 windowTitle (bits dot [batt, mu, wi])]
+          line 16 windowTitle ((bits dot [batt, mu, wi]) ++ [Plain "  "])]
     else return $ HintContent "grey25" "white" $ [line 20 here [time]]
 
 startHintTimer :: X ()
@@ -157,7 +157,7 @@ displayContent (screen, content) win = withDisplay $ \dpy -> do
 
   fonts <- mapM initXMF fontNames
   extents <- mapM (flip textExtentsXMF " ") fonts
-  let height = sum $ map (uncurry (+)) extents
+  let height = 2 + (fi $ sum $ map (uncurry (+)) extents)
       (Rectangle sx sy sw sh) = screenRect $ W.screenDetail screen
   
   io $ moveResizeWindow dpy win sx sy sw (fi height)
