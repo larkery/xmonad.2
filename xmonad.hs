@@ -170,8 +170,8 @@ mkeys =
   , ( "M-y", bringMenu (cl def) minT "M-y" )
   , ( "M-<Return>", withMaster (const $ windows W.shiftMaster) (windows . W.focusWindow) >> warp )
 
-  , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 10" )
-  , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 10" )
+  , ( "<XF86AudioRaiseVolume>", spawn "pamixer -i 5" )
+  , ( "<XF86AudioLowerVolume>", spawn "pamixer -d 5" )
   , ( "<XF86AudioMute>", spawn "pamixer -t" )
   , ( "<XF86MonBrightnessUp>", spawn "xbacklight -inc 10" )
   , ( "<XF86MonBrightnessDown>", spawn "xbacklight -dec 10" )
