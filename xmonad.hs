@@ -85,6 +85,7 @@ specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
                            , className =? "Pinentry" --> doFloatSnap
                            , className =? "Xmessage" --> doFloatSnap
                            , className =? "Yad" --> doFloatSnap
+                           , className =? "password-input" --> doFloatSnap <+> op 0.8
                            , className =? "XClock" --> doFloatSnap <+> op 0.6
                            , className =? "Dunst" --> doIgnore
                            ]
