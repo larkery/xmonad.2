@@ -80,14 +80,18 @@ windowMenu cfg k = do
 
           allWindows :: X [NTWindow]
           allWindows = do
-            windowTags <- gets ((concatMap tagWindows) . W.workspaces . windowset)
+            -- windowTags <- gets ((concatMap tagWindows) . W.workspaces . windowset)
+            curTW <- gets ((tagWindows "> ") . W.workspace . W.current . windowset)
+            visTW <- gets ((concatMap (tagWindows "* ")) . (map W.workspace) . W.visible . windowset)
+            hidTW <- gets ((concatMap (tagWindows "  ")) . W.hidden . windowset)
+            let windowTags = curTW ++ visTW ++ hidTW
             history <- orderedWindows
             p <- gets (maximum . (map (length . W.tag)) . W.workspaces .windowset)
             let historyTags = map (fromMaybe "?" . (flip lookup windowTags)) history
             mapM (toNTWindow p) $ zip historyTags history
 
-          tagWindows :: W.Workspace i l a -> [(a, i)]
-          tagWindows (W.Workspace {W.tag = t, W.stack = st}) = map (flip (,) t) $ W.integrate' st
+          tagWindows :: String -> W.Workspace WorkspaceId l a -> [(a, WorkspaceId)]
+          tagWindows s (W.Workspace {W.tag = t, W.stack = st}) = map (flip (,) (s ++ t)) $ W.integrate' st
 
           _focus :: Action NTWindow
           _focus = A {_actionLabel = "focus", _action = \nw -> windows $ W.focusWindow (window nw)}

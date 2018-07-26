@@ -122,8 +122,11 @@ mconfig =
     } `additionalKeysP` mkeys
     `additionalMouseBindings`
     [((mod4Mask, 1), \w -> do float <- isFloating w
+                              let flex x | x < 0.2 = 0
+                                  flex x | x > 0.8 = 1
+                                  otherwise = 0.5
                               if float
-                                then (focus w >> Flex.mouseWindow Flex.discrete w >> ifClick (windows $ W.sink w))
+                                then (focus w >> Flex.mouseWindow flex w >> ifClick (windows $ W.sink w))
                                 else mouseResizeTile (1/4) mouseMoveWindow w
      )]
   )
