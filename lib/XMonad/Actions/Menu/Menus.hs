@@ -88,7 +88,7 @@ windowMenu cfg k = do
             history <- orderedWindows
             p <- gets (maximum . (map (length . W.tag)) . W.workspaces .windowset)
             let historyTags = map (fromMaybe "?" . (flip lookup windowTags)) history
-            mapM (toNTWindow p) $ zip historyTags history
+            mapM (toNTWindow (p+2)) $ zip historyTags history
 
           tagWindows :: String -> W.Workspace WorkspaceId l a -> [(a, WorkspaceId)]
           tagWindows s (W.Workspace {W.tag = t, W.stack = st}) = map (flip (,) (s ++ t)) $ W.integrate' st
@@ -101,7 +101,7 @@ windowMenu cfg k = do
                                                                      (bringWindow w)) . window }
 
           wrap :: NTWindow -> Choice NTWindow
-          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = if tag nw == minT then [_bring, _master] else [_focus, _bring, _master] }
+          wrap nw = C { _value = nw, _choiceLabel = show nw, _actions = if tag nw == "  "++minT then [_bring, _master] else [_focus, _bring, _master] }
 
 bringMenu cfg ws k = do
   let pop = do thing <- cur
