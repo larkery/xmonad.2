@@ -15,6 +15,7 @@ import Data.List ( (\\), intersect, delete )
 import XMonad.Util.WorkspaceCompare ( getSortByTag )
 import XMonad.Hooks.NotifyUrgencyHook
 import XMonad.Hooks.UrgencyHook (clearUrgents)
+import XMonad.Hooks.Place (underMouse, placeHook)
 import XMonad.Actions.RotSlaves
 import XMonad.Layout.AdjustableTall
 import XMonad.Hooks.ManageHelpers
@@ -85,14 +86,14 @@ specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
                            , className =? "Pinentry" --> doFloatSnap
                            , className =? "Xmessage" --> doFloatSnap
                            , className =? "Yad" --> doFloatSnap
-                           , className =? "password-input" --> doFloatSnap <+> op 0.8
+                           , className =? "password-input" --> (placeHook (underMouse (0, 0))) <+> doFloatSnap <+> op 0.8
                            , className =? "XClock" --> doFloatSnap <+> op 0.6
                            , className =? "Dunst" --> doIgnore
                            ]
         op x = (ask >>= \w -> liftX (setOpacity w x) >> idHook)
         doFloatSnap = doFloatDep snap
         snap (W.RationalRect x y w h) =
-          W.RationalRect x' y' w h
+          W.RationalRect x' y' w' h'
           where
             x' | x < 0 = 0
                | x > 1 = (1 - w)
@@ -100,6 +101,10 @@ specialWindows c = c { manageHook = (manageHook c) <+> manageSpawn <+> rules}
             y' | y < 0 = 0
                | y > 1 = (1 - h)
                | otherwise = y
+            w' | x' + w > 1 = (1 - x')
+               | otherwise = w
+            h' | y' + h > 1 = (1 - y')
+               | otherwise = h
 
 mconfig =
   hint $
