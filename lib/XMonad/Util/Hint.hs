@@ -118,8 +118,7 @@ content nonEmptyNames s = do
 
       bits sep xs = intersperse (Plain sep) $ filter ((/= "") . text) xs
       
-      workspaces = bits " " $
-                   (flip map (filter ((`elem` hiddenTags). fst) (zip tags [1..])) $
+      workspaces = (flip map (filter ((`elem` hiddenTags). fst) (zip tags [1..])) $
                      \(tag, n) -> Plain $ if tag == "&" then tag else (number n tag))
                    
       windowTitle
@@ -128,13 +127,13 @@ content nonEmptyNames s = do
 
   if isCurrent
     then return $ HintContent "black" "white" $
-         [line 24 (if null workspaces then here else (here ++ (Plain dot):workspaces)) [time],
+         [line 24 (bits dot (layout:workspaces)) (bits dot [time, thisTag]),
           line 16 windowTitle ((bits dot [batt, mu, wi]) ++ [Plain "  "])]
-    else return $ HintContent "grey25" "white" $ [line 20 here [time]]
+    else return $ HintContent "grey25" "white" $ [line 20 [layout] (bits dot [time, thisTag])]
 
 startHintTimer :: X ()
 startHintTimer = do
-  id <- startTimer 0.2
+  id <- startTimer 0.1
   XS.modify $ \h -> h {_timer = Just id}
   return ()
 
