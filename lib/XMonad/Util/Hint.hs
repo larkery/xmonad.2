@@ -112,7 +112,7 @@ content nonEmptyNames s = do
              | otherwise = Plain layoutS
   
       thisTagIndex = 1 + (fromJust $ findIndex (== sTag) tags)
-      thisTag = Styled "cyan" "" (number thisTagIndex sTag)
+      thisTag = Styled "black" "white" sTag
 
       here = bits dot [thisTag, layout]
 
