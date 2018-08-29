@@ -3,6 +3,7 @@ module XMonad.Util.Hint where
 
 import XMonad
 import qualified XMonad.StackSet as W
+import qualified Data.Char
 import Data.Monoid
 import Data.Bits ((.&.))
 import qualified XMonad.Util.ExtensibleState as XS
@@ -111,8 +112,7 @@ content nonEmptyNames s = do
       layout | layoutS == "Full" && wCount > 1 = Styled "orange" "" (layoutS ++ " - " ++ show wCount)
              | otherwise = Plain layoutS
   
-      thisTagIndex = 1 + (fromJust $ findIndex (== sTag) tags)
-      thisTag = Styled "black" "white" sTag
+      thisTag = Styled "white" "darkmagenta" (map Data.Char.toUpper sTag)
 
       here = bits dot [thisTag, layout]
 
@@ -127,13 +127,13 @@ content nonEmptyNames s = do
 
   if isCurrent
     then return $ HintContent "black" "white" $
-         [line 24 (bits dot (layout:workspaces)) (bits dot [time, thisTag]),
+         [line 24 (bits dot (thisTag:layout:workspaces)) [time],
           line 16 windowTitle ((bits dot [batt, mu, wi]) ++ [Plain "  "])]
-    else return $ HintContent "grey25" "white" $ [line 20 [layout] (bits dot [time, thisTag])]
+    else return $ HintContent "grey25" "white" $ [line 20 (bits dot [thisTag, layout]) [time]]
 
 startHintTimer :: X ()
 startHintTimer = do
-  id <- startTimer 0.1
+  id <- startTimer 0.3
   XS.modify $ \h -> h {_timer = Just id}
   return ()
 
